@@ -1,7 +1,7 @@
 # --- Python / Backend ---
 __pycache__/
 *.py[cod]
-backend/venv/
+.venv/
 backend/.env
 
 # --- Node / Mobile ---
