@@ -1,5 +1,6 @@
-import { StyleSheet, TouchableOpacity, ScrollView, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, ScrollView, View, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as DocumentPicker from 'expo-document-picker'; //
 
 import { HelloWave } from '@/components/hello-wave';
 import { ThemedText } from '@/components/themed-text';
@@ -7,11 +8,33 @@ import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useGlobalState } from '@/context/GlobalStateContext'; // Access haptics
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { hapticFeedback, userName } = useGlobalState(); //
   const colorScheme = useColorScheme() ?? 'light';
-  const theme = Colors[colorScheme]; // Access the theme object directly
+  const theme = Colors[colorScheme];
+
+  // 1. Storage Upload Handler
+  const handleUploadFromStorage = async () => {
+    try {
+      if (hapticFeedback) hapticFeedback(); //
+      const result = await DocumentPicker.getDocumentAsync({ //
+        type: ['image/*', 'application/pdf'],
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets?.[0]) {
+        router.push({
+          pathname: '/reports/analysis',
+          params: { images: JSON.stringify([result.assets[0].uri]) }
+        });
+      }
+    } catch (error) {
+      Alert.alert("Error", "Could not access storage. Please try again.");
+    }
+  };
 
   const recentActivity = [
     { id: 1, title: 'Blood Panel', date: 'Oct 26', status: '2 Abnormalities', icon: 'doc.text.fill' },
@@ -20,25 +43,53 @@ export default function HomeScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
         {/* 1. Header Section */}
         <View style={styles.header}>
           <View>
-            <ThemedText type="title">Hello, Priya <HelloWave /></ThemedText>
+            <ThemedText type="title">Hello, {userName || 'Priya'} <HelloWave /></ThemedText>
             <ThemedText style={styles.subtitle}>
-              Health Status: <ThemedText type="defaultSemiBold" style={{ color: theme.success }}>Stable</ThemedText>
+              Health Status: <ThemedText type="defaultSemiBold" style={{ color: '#4ADE80' }}>Stable</ThemedText>
             </ThemedText>
           </View>
-          <TouchableOpacity style={styles.profileButton} onPress={() => router.push('/profile')}>
-            <View style={[styles.avatar, { backgroundColor: theme.tint }]} />
+          <TouchableOpacity 
+            onPress={() => { hapticFeedback?.(); router.push('/profile'); }}
+          >
+            <View style={[styles.avatar, { backgroundColor: theme.tint }]}>
+               <ThemedText style={{ color: 'white', fontWeight: 'bold' }}>
+                {(userName || 'P').charAt(0)}
+               </ThemedText>
+            </View>
           </TouchableOpacity>
         </View>
 
-        {/* 2. Daily Insight Card */}
-        <View style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.tint }]}>
+        {/* 2. Primary Quick Actions - Redesigned for Index-only Focus */}
+        <ThemedText type="subtitle" style={styles.sectionTitle}>Analyze Now</ThemedText>
+        <View style={styles.actionGrid}>
+          <TouchableOpacity 
+            style={[styles.mainActionCard, { backgroundColor: theme.tint }]}
+            onPress={() => { hapticFeedback?.(); router.push('/scan'); }}
+          >
+            <IconSymbol name="camera.fill" size={32} color="white" />
+            <ThemedText style={styles.mainActionText}>Scan Report</ThemedText>
+            <ThemedText style={styles.actionSubtext}>Capture with Camera</ThemedText>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.mainActionCard, { backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border }]}
+            onPress={handleUploadFromStorage}
+          >
+            <IconSymbol name="doc.fill" size={32} color={theme.tint} />
+            <ThemedText style={[styles.mainActionText, { color: theme.text }]}>Upload File</ThemedText>
+            <ThemedText style={styles.actionSubtext}>PDF or Gallery</ThemedText>
+          </TouchableOpacity>
+        </View>
+
+        {/* 3. Daily Insight Card */}
+        <View style={[styles.insightCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
           <View style={styles.cardHeader}>
-            <IconSymbol name="sparkles" size={20} color={theme.tint} />
+            <IconSymbol name="sparkles" size={18} color={theme.tint} />
             <ThemedText type="defaultSemiBold" style={{ color: theme.tint, marginLeft: 8 }}>Daily Insight</ThemedText>
           </View>
           <ThemedText style={styles.cardBody}>
@@ -46,29 +97,9 @@ export default function HomeScreen() {
           </ThemedText>
         </View>
 
-        {/* 3. Quick Actions */}
-        <ThemedText type="subtitle" style={styles.sectionTitle}>Quick Actions</ThemedText>
-        <View style={styles.actionRow}>
-          <TouchableOpacity 
-            style={[styles.actionCard, { backgroundColor: theme.surface }]}
-            onPress={() => console.log('Open Document Picker')} 
-          >
-            <IconSymbol name="doc.text.fill" size={32} color={theme.tint} />
-            <ThemedText type="defaultSemiBold" style={styles.actionText}>Upload Report</ThemedText>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.actionCard, { backgroundColor: theme.surface }]}
-            onPress={() => router.push('/scan')}
-          >
-            <IconSymbol name="camera.viewfinder" size={32} color={theme.tint} />
-            <ThemedText type="defaultSemiBold" style={styles.actionText}>Check Meds</ThemedText>
-          </TouchableOpacity>
-        </View>
-
         {/* 4. Recent Activity */}
         <View style={styles.sectionHeader}>
-          <ThemedText type="subtitle">Recent Activity</ThemedText>
+          <ThemedText type="subtitle">Recent History</ThemedText>
           <TouchableOpacity onPress={() => router.push('/reports')}>
             <ThemedText type="link">See All</ThemedText>
           </TouchableOpacity>
@@ -76,8 +107,8 @@ export default function HomeScreen() {
 
         {recentActivity.map((item) => (
           <TouchableOpacity key={item.id} style={[styles.listCard, { borderBottomColor: theme.border }]}>
-            <View style={[styles.iconBox, { backgroundColor: theme.tint + '20' }]}> 
-              <IconSymbol name={item.icon as any} size={24} color={theme.tint} />
+            <View style={[styles.iconBox, { backgroundColor: theme.surface }]}> 
+              <IconSymbol name={item.icon as any} size={22} color={theme.tint} />
             </View>
             <View style={styles.listContent}>
               <ThemedText type="defaultSemiBold">{item.title}</ThemedText>
@@ -85,10 +116,11 @@ export default function HomeScreen() {
                 {item.date} • {item.status}
               </ThemedText>
             </View>
-            <IconSymbol name="chevron.right" size={20} color={theme.icon} />
+            <IconSymbol name="chevron.right" size={18} color={theme.icon} />
           </TouchableOpacity>
         ))}
 
+        <View style={{ height: 100 }} />
       </ScrollView>
     </ThemedView>
   );
@@ -97,20 +129,37 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { padding: 20, paddingTop: 60 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 },
   subtitle: { marginTop: 4, opacity: 0.7 },
-  profileButton: { padding: 4 },
-  avatar: { width: 40, height: 40, borderRadius: 20 },
-  card: { padding: 16, borderRadius: 16, marginBottom: 32, borderWidth: 1, borderColor: 'transparent' },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  cardBody: { fontSize: 15, lineHeight: 22 },
-  sectionTitle: { marginBottom: 16 },
-  actionRow: { flexDirection: 'row', gap: 16, marginBottom: 32 },
-  actionCard: { flex: 1, padding: 20, borderRadius: 16, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  actionText: { textAlign: 'center' },
+  avatar: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  
+  // Quick Action Grid
+  sectionTitle: { marginBottom: 16, fontSize: 18 },
+  actionGrid: { flexDirection: 'row', gap: 12, marginBottom: 32 },
+  mainActionCard: { 
+    flex: 1, 
+    height: 140, 
+    borderRadius: 24, 
+    padding: 16, 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    gap: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4
+  },
+  mainActionText: { fontSize: 16, fontWeight: 'bold', textAlign: 'center' },
+  actionSubtext: { fontSize: 11, opacity: 0.6, textAlign: 'center' },
+
+  insightCard: { padding: 20, borderRadius: 20, marginBottom: 32, borderWidth: 1 },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  cardBody: { fontSize: 14, lineHeight: 20, opacity: 0.9 },
+  
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  listCard: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1 },
-  iconBox: { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 16 },
+  listCard: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1 },
+  iconBox: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 16 },
   listContent: { flex: 1 },
-  listSubtext: { fontSize: 13, marginTop: 2 },
+  listSubtext: { fontSize: 12, marginTop: 2 },
 });

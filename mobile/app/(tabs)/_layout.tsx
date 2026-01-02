@@ -46,41 +46,6 @@ export default function TabLayout() {
         }}
       />
 
-      {/* CENTER SPLIT BUTTON */}
-      <Tabs.Screen
-        name="scan"
-        options={{
-          title: '',
-          tabBarButton: () => (
-            <View style={styles.centerButtonContainer}>
-              {/* We apply a negative margin to lift it out of the tab bar */}
-              {/* Note: We don't need to adjust this for safe area because the parent container moved up */}
-              <View style={[styles.splitButton, { backgroundColor: themeColors.tint }]}>
-                
-                <TouchableOpacity 
-                  style={styles.halfButton} 
-                  onPress={() => router.push('/scan')}
-                  activeOpacity={0.8}
-                >
-                  <IconSymbol name="camera.viewfinder" size={24} color="#000" />
-                </TouchableOpacity>
-
-                <View style={styles.divider} />
-
-                <TouchableOpacity 
-                  style={styles.halfButton} 
-                  onPress={() => console.log("Trigger Document Picker")}
-                  activeOpacity={0.8}
-                >
-                  <IconSymbol name="doc.text.fill" size={24} color="#000" />
-                </TouchableOpacity>
-
-              </View>
-            </View>
-          ),
-        }}
-      />
-
       <Tabs.Screen
         name="reports"
         options={{

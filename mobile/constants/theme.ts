@@ -1,39 +1,44 @@
 import { Platform } from 'react-native';
 
-const palette = {
-  white: '#FFFFFF',
-  black: '#000000',
-  gray50: '#F9FAFB',
-  gray100: '#F3F4F6',
-  gray800: '#1F2937',
-  gray900: '#151718',
-  blue500: '#0a7ea4',
-  red600: '#DC2626',
-};
-
 export const Colors = {
   light: {
-    text: '#11181C',
+    text: '#0f1724',
+    background: '#F8FAFF', // very light, slightly cool off-white
+    tint: '#2563EB', // calming blue accent
+    icon: '#64748B', // muted slate for icons
+    surface: '#F1F5F9', // very soft surface
+    cardBackground: '#F9FBFF', // slightly distinct from background
+    border: '#E6EEF8',
+    // Additional semantic colors used across the app
+    success: '#10B981',
+    danger: '#EF4444',
     textSecondary: '#6B7280',
-    background: palette.white,
-    tint: palette.blue500,
-    icon: '#687076',
-    surface: palette.gray100,
-    cardBackground: palette.gray50,
-    border: '#E5E7EB',
-    danger: palette.red600,
-    
   },
   dark: {
-    text: '#ECEDEE',
-    textSecondary: '#9CA3AF',
-    background: palette.gray900,
-    tint: palette.white,
-    icon: '#9BA1A6',
-    surface: '#262829',
-    cardBackground: '#1E2021',
-    border: '#374151',
-    danger: '#EF4444',
+    text: '#E6EEF8', // soft white (not pure)
+    background: '#071226', // deep navy (not pure black)
+    tint: '#60A5FA', // soft sky blue accent
+    icon: '#94A3B8', // muted icon color
+    surface: '#0B1724', // slightly lighter than background
+    cardBackground: '#0F2333', // calm navy card background
+    border: '#122B3B',
+    // Additional semantic colors used across the app
+    success: '#34D399',
+    danger: '#F87171',
+    textSecondary: '#94A3B8',
+  },
+  // Added High Contrast Theme
+  highContrast: {
+    text: '#FFFFFF',
+    background: '#000000',
+    tint: '#FFFF00', // Yellow is standard for high contrast
+    icon: '#FFFFFF',
+    surface: '#333333',
+    cardBackground: '#000000',
+    border: '#FFFFFF',
+    success: '#00FF00',
+    danger: '#FF0000',
+    textSecondary: '#FFFFFF',
   },
 };
 

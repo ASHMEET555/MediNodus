@@ -1,24 +1,48 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { GlobalProvider, useGlobalState } from '../context/GlobalStateContext';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+function RootLayoutNav() {
+  const { isLoggedIn } = useGlobalState();
+  const segments = useSegments();
+  const router = useRouter();
+  const [isReady, setIsReady] = useState(false);
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+  // Use a second effect to signal when the layout has mounted
+  useEffect(() => {
+    setIsReady(true);
+  }, []);
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  useEffect(() => {
+    if (!isReady) return; // Wait until the layout is mounted
+
+    // segments can be a union of literal string types; coerce to string to avoid
+    // a TypeScript "no overlap" error when comparing to route-group names.
+    const firstSegment = Array.isArray(segments) ? segments[0] : segments;
+    const inAuthGroup = String(firstSegment) === '(auth)';
+
+    if (!isLoggedIn && !inAuthGroup) {
+      // Redirect to login if not logged in
+      router.replace('/(auth)/login');
+    } else if (isLoggedIn && inAuthGroup) {
+      // Redirect to main app if logged in but trying to access auth screens
+      router.replace('/(tabs)');
+    }
+  }, [isLoggedIn, segments, isReady]);
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <Stack screenOptions={{ animation: 'slide_from_right' }}>
+      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="scan" options={{ presentation: 'fullScreenModal', headerShown: false }} />
+    </Stack>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <GlobalProvider>
+      <RootLayoutNav />
+    </GlobalProvider>
   );
 }

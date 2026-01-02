@@ -8,14 +8,22 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export function useThemeColor(
   props: { light?: string; dark?: string },
-  colorName: keyof typeof Colors.light & keyof typeof Colors.dark
+  colorName: keyof typeof Colors.light
 ) {
-  const theme = useColorScheme() ?? 'light';
-  const colorFromProps = props[theme];
+  // Determine scheme from the unified hook (which safely reads global state).
+  const scheme = useColorScheme();
+  const resolvedBase: 'light' | 'dark' = scheme === 'highContrast' ? 'dark' : (scheme as 'light' | 'dark');
+  const isHighContrast = scheme === 'highContrast';
 
-  if (colorFromProps) {
-    return colorFromProps;
-  } else {
-    return Colors[theme][colorName];
+  // If a prop color for the resolved theme exists, prefer it.
+  const colorFromProps = props[resolvedBase];
+  if (colorFromProps) return colorFromProps;
+
+  // If high contrast is enabled, only override certain semantic colors.
+  const highContrastOverridden = ['text', 'icon', 'tint', 'border', 'textSecondary', 'success', 'danger'];
+  if (isHighContrast && highContrastOverridden.includes(colorName as string)) {
+    return Colors.highContrast[colorName as keyof typeof Colors.highContrast] as string;
   }
+
+  return Colors[resolvedBase][colorName];
 }

@@ -1,9 +1,0 @@
-{
-	"folders": [
-		{ "path": "." }
-	],
-	"settings": {
-		"python.defaultInterpreterPath": "./backend/venv/bin/python",
-		"editor.formatOnSave": true
-	}
-}

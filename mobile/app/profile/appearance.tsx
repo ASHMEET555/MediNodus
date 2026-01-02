@@ -1,5 +1,5 @@
 // mobile/app/profile/appearance.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { StyleSheet, TouchableOpacity, View, ScrollView, Switch } from 'react-native';
 import { useRouter } from 'expo-router';
 
@@ -8,6 +8,7 @@ import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useGlobalState } from '@/context/GlobalStateContext';
 
 export default function AppearanceScreen() {
   const router = useRouter();
@@ -15,13 +16,29 @@ export default function AppearanceScreen() {
   const theme = Colors[colorScheme];
 
   // State for settings
-  const [selectedTheme, setSelectedTheme] = useState('System');
-  const [isHighContrast, setIsHighContrast] = useState(false);
+  const { theme: currentTheme, isHighContrast: currentHighContrast, setTheme, setHighContrast } = useGlobalState();
+
+  const [selectedTheme, setSelectedTheme] = useState<'Light' | 'Dark' | 'System'>('System');
+  const [isHighContrast, setIsHighContrastLocal] = useState(false);
+
+  useEffect(() => {
+    // Map stored theme to UI labels
+    if (currentTheme === 'light') setSelectedTheme('Light');
+    else if (currentTheme === 'dark') setSelectedTheme('Dark');
+    else setSelectedTheme('System');
+
+    setIsHighContrastLocal(Boolean(currentHighContrast));
+  }, [currentTheme, currentHighContrast]);
 
   const ThemeOption = ({ label, value }: { label: string; value: string }) => (
     <TouchableOpacity 
       style={[styles.optionRow, { borderBottomColor: theme.border }]} 
-      onPress={() => setSelectedTheme(value)}
+      onPress={async () => {
+        setSelectedTheme(value as 'Light' | 'Dark' | 'System');
+        // Map UI label to stored theme value
+        const mapped = value === 'Light' ? 'light' : value === 'Dark' ? 'dark' : 'system';
+        await setTheme(mapped as any);
+      }}
     >
       <ThemedText style={styles.optionLabel}>{label}</ThemedText>
       {selectedTheme === value && (
@@ -50,9 +67,12 @@ export default function AppearanceScreen() {
               <IconSymbol name="eye.fill" size={22} color={theme.icon} />
               <ThemedText style={styles.rowLabel}>High Contrast Mode</ThemedText>
             </View>
-            <Switch 
-              value={isHighContrast} 
-              onValueChange={setIsHighContrast}
+            <Switch
+              value={isHighContrast}
+              onValueChange={async (val) => {
+                setIsHighContrastLocal(val);
+                await setHighContrast(val);
+              }}
               trackColor={{ false: '#767577', true: theme.tint }}
             />
           </View>
