@@ -121,6 +121,28 @@ export default function ScanScreen() {
     setEditingIndex(null);
   };
 
+// 1. Update the Delete function logic
+const handleDeleteImage = (id: string) => {
+  Alert.alert('Delete Photo', 'Remove this photo?', [
+    { text: 'Cancel' },
+    { 
+      text: 'Delete', 
+      onPress: () => { 
+        const updatedImages = capturedImages.filter(img => img.id !== id);
+        setCapturedImages(updatedImages); 
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        
+        // NEW: If no photos left, go back to camera mode automatically
+        if (updatedImages.length === 0) {
+          setIsReviewing(false);
+        }
+      }, 
+      style: 'destructive' 
+    },
+  ]);
+};
+
+// ... inside the return statement for the Review Screen ..
   const handleSubmit = async () => {
     setIsLoading(true);
     try {
@@ -152,7 +174,7 @@ export default function ScanScreen() {
             <IconSymbol name='chevron.left' size={24} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity onPress={toggleFlash} style={styles.roundBtn}>
-            <IconSymbol name={flash === 'on' ? 'flash' : 'flash_off'} size={24} color={flash === 'on' ? "#FFD700" : "#fff"} />
+            <IconSymbol name={flash === 'on' ? 'bolt.fill' : 'bolt.slash.fill'} size={24} color={flash === 'on' ? "#FFD700" : "#fff"} />
           </TouchableOpacity>
         </View>
 
@@ -212,7 +234,7 @@ export default function ScanScreen() {
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.actionBtn} 
-                onPress={() => setCapturedImages(prev => prev.filter(i => i.id !== img.id))}
+                onPress={() => handleDeleteImage(img.id)}
               >
                 <IconSymbol name="trash" size={18} color={dangerColor} />
                 <ThemedText style={{ color: dangerColor, marginLeft: 5 }}>Delete</ThemedText>
@@ -222,15 +244,28 @@ export default function ScanScreen() {
         ))}
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 10 }]}>
         <TouchableOpacity 
-          style={[styles.submitBtn, { backgroundColor: successColor }]} 
-          onPress={handleSubmit}
-          disabled={isLoading}
+        style={[
+        styles.submitBtn, 
+        { 
+        backgroundColor: successColor, 
+        // Add visual disabled state (opacity)
+        opacity: (isLoading || capturedImages.length === 0) ? 0.5 : 1 
+        }
+        ]} 
+        onPress={handleSubmit} 
+        // Disable the button if loading OR if no images exist
+        disabled={isLoading || capturedImages.length === 0}
         >
-          {isLoading ? <ActivityIndicator color="#fff" /> : <ThemedText style={styles.submitText}>Submit {capturedImages.length} Photos</ThemedText>}
-        </TouchableOpacity>
-      </View>
+        {isLoading ? (
+         <ActivityIndicator color="#fff" />
+        ) : (
+        <ThemedText style={styles.submitText}>
+        Submit ({capturedImages.length})
+        </ThemedText>
+    )}
+    </TouchableOpacity>
+
 
       {/* Crop Modal */}
       {isCropping && editingIndex !== null && (

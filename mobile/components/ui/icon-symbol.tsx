@@ -14,7 +14,7 @@ const MAPPING = {
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
-  
+  'chevron.left' : 'chevron-left',
   // New MediNodus Icons
   'doc.text.fill': 'description',      // For Reports
   'camera.viewfinder': 'camera-alt',   // For Scan
@@ -28,7 +28,16 @@ const MAPPING = {
   'lock.fill': 'lock',
   'cloud.fill': 'cloud',
   'trash.fill': 'delete',
-  'bell.fill' : 'notifications'
+  'bell.fill' : 'notifications',
+  'camera.rotate': 'flip-camera-ios',
+  'xmark': 'close',
+  'checkmark': 'check',
+  'photo': 'photo-library',
+  'arrow.left': 'arrow-back',
+  'trash': 'delete',
+  'crop': 'crop',
+  'bolt.fill': 'flash-on',
+  'bolt.slash.fill': 'flash-off'
 } as IconMapping; //
 
 export type IconSymbolName = keyof typeof MAPPING;
