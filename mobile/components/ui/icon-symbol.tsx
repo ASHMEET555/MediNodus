@@ -37,8 +37,10 @@ const MAPPING = {
   'trash': 'delete',
   'crop': 'crop',
   'bolt.fill': 'flash-on',
-  'bolt.slash.fill': 'flash-off'
-} as IconMapping; //
+  'bolt.slash.fill': 'flash-off',
+  'plus' : 'add',
+  'minus' : 'remove',
+  } as IconMapping; //
 
 export type IconSymbolName = keyof typeof MAPPING;
 

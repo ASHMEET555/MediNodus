@@ -4,27 +4,29 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   ScrollView, 
-  Modal, 
   Alert, 
-  Dimensions, 
   ActivityIndicator,
-  BackHandler 
+  BackHandler,
+  Dimensions,
 } from 'react-native';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions, FlashMode } from 'expo-camera';
-import { ImageEditor } from 'expo-dynamic-image-crop';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 
-// Themed Components (assuming these paths are correct in your project)
+// Custom Package for free-form cropping
+import { ImageEditor } from 'expo-dynamic-image-crop';
+
+// Themed Components
 import { ThemedText } from '../components/themed-text';
 import { ThemedView } from '../components/themed-view';
 import { Colors } from '../constants/theme';
 import { useThemeColor } from '../hooks/use-theme-color';
 import { IconSymbol } from '../components/ui/icon-symbol';
+import { Slider } from '@miblanchard/react-native-slider'; 
 
 
 interface CapturedImage {
@@ -33,6 +35,8 @@ interface CapturedImage {
   timestamp: number;
 }
 
+
+ 
 export default function ScanScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
@@ -46,18 +50,22 @@ export default function ScanScreen() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [flash, setFlash] = useState<FlashMode>('off');
   const [isLoading, setIsLoading] = useState(false);
+  const [zoom, setZoom] = useState(0);
+  const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | undefined>(undefined);
 
   // Theme Colors
-  const backgroundColor = useThemeColor({ light: Colors.light.background, dark: Colors.dark.background }, 'background');
   const tintColor = useThemeColor({ light: Colors.light.tint, dark: Colors.dark.tint }, 'tint');
-  const textColor = useThemeColor({ light: Colors.light.text, dark: Colors.dark.text }, 'text');
   const surfaceColor = useThemeColor({ light: Colors.light.surface, dark: Colors.dark.surface }, 'surface');
   const dangerColor = useThemeColor({ light: Colors.light.danger, dark: Colors.dark.danger }, 'danger');
   const successColor = useThemeColor({ light: Colors.light.success, dark: Colors.dark.success }, 'success');
 
-  // Handle Android Hardware Back Button
+  // Handle Hardware Back Button
   useEffect(() => {
     const backAction = () => {
+      if (isCropping) {
+        setIsCropping(false);
+        return true;
+      }
       if (isReviewing) {
         setIsReviewing(false);
         return true;
@@ -68,22 +76,11 @@ export default function ScanScreen() {
 
     const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
     return () => backHandler.remove();
-  }, [isReviewing]);
+  }, [isReviewing, isCropping]);
 
   useEffect(() => {
     if (!permission?.granted) requestPermission();
   }, [permission]);
-
-  if (!permission?.granted) {
-    return (
-      <ThemedView style={styles.centered}>
-        <ThemedText style={styles.permissionText}>Camera permission is required to scan.</ThemedText>
-        <TouchableOpacity style={[styles.primaryButton, { backgroundColor: tintColor }]} onPress={requestPermission}>
-          <ThemedText style={{ color: '#fff' }}>Grant Permission</ThemedText>
-        </TouchableOpacity>
-      </ThemedView>
-    );
-  }
 
   // --- Handlers ---
 
@@ -93,17 +90,15 @@ export default function ScanScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
       if (photo) {
-        setCapturedImages(prev => [...prev, { id: Date.now().toString(), uri: photo.uri, timestamp: Date.now() }]);
+        setCapturedImages(prev => [...prev, { 
+          id: Date.now().toString(), 
+          uri: photo.uri, 
+          timestamp: Date.now() 
+        }]);
       }
     } catch (e) {
       Alert.alert("Error", "Failed to take photo");
     }
-  };
-
-  const toggleFlash = () => {
-    setFlash(current => (current === 'off' ? 'on' : 'off'));
-    console.log("toggle")
-    Haptics.selectionAsync();
   };
 
   const handleStartCrop = (index: number) => {
@@ -116,33 +111,44 @@ export default function ScanScreen() {
       const updated = [...capturedImages];
       updated[editingIndex].uri = uri;
       setCapturedImages(updated);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
     setIsCropping(false);
     setEditingIndex(null);
   };
 
-// 1. Update the Delete function logic
-const handleDeleteImage = (id: string) => {
-  Alert.alert('Delete Photo', 'Remove this photo?', [
-    { text: 'Cancel' },
-    { 
-      text: 'Delete', 
-      onPress: () => { 
-        const updatedImages = capturedImages.filter(img => img.id !== id);
-        setCapturedImages(updatedImages); 
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        
-        // NEW: If no photos left, go back to camera mode automatically
-        if (updatedImages.length === 0) {
-          setIsReviewing(false);
-        }
-      }, 
-      style: 'destructive' 
-    },
-  ]);
-};
+  const handleDeleteImage = (id: string) => {
+    Alert.alert('Delete Photo', 'Remove this photo?', [
+      { text: 'Cancel' },
+      { 
+        text: 'Delete', 
+        onPress: () => { 
+          const updatedImages = capturedImages.filter(img => img.id !== id);
+          setCapturedImages(updatedImages); 
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          if (updatedImages.length === 0) setIsReviewing(false);
+        }, 
+        style: 'destructive' 
+      },
+    ]);
+  };
 
-// ... inside the return statement for the Review Screen ..
+  const handleTapToFocus = async (event: any) => {
+    const { locationX, locationY } = event.nativeEvent;
+    
+    // Calculate point for the camera (normalized 0 to 1)
+    const screenWidth = Dimensions.get('window').width;
+    const screenHeight = Dimensions.get('window').height;
+    
+    setFocusPoint({
+      x: locationX / screenWidth,
+      y: locationY / screenHeight,
+    });
+
+    // Reset focus indicator after a second
+    setTimeout(() => setFocusPoint(undefined), 1000);
+  };
+
   const handleSubmit = async () => {
     setIsLoading(true);
     try {
@@ -155,32 +161,87 @@ const handleDeleteImage = (id: string) => {
     }
   };
 
-  // --- UI Components ---
+  if (!permission?.granted) {
+    return (
+      <ThemedView style={styles.centered}>
+        <ThemedText style={styles.permissionText}>Camera permission is required.</ThemedText>
+        <TouchableOpacity style={[styles.primaryButton, { backgroundColor: tintColor }]} onPress={requestPermission}>
+          <ThemedText style={{ color: '#fff' }}>Grant Permission</ThemedText>
+        </TouchableOpacity>
+      </ThemedView>
+    );
+  }
 
-  // 1. Camera View
+  // 1. Camera Interface
+
   if (!isReviewing) {
     return (
       <View style={[styles.container, { backgroundColor: '#000' }]}>
-        <CameraView 
-          ref={cameraRef} 
-          style={StyleSheet.absoluteFill} 
-          flash={flash}
-          facing="back" 
-        />
         
-        {/* Top Controls */}
+         <TouchableOpacity 
+          activeOpacity={1} 
+          style={StyleSheet.absoluteFill} 
+          onPress={handleTapToFocus}
+        >
+          <CameraView 
+            ref={cameraRef} 
+            style={StyleSheet.absoluteFill} 
+            flash={flash}
+            facing="back"
+            zoom={zoom} // Apply Zoom
+            autofocus="on" // Ensure AF is on
+          />
+        </TouchableOpacity>
+        
+        {/* Corrected Focus Indicator (keep this as is) */}
+        {focusPoint && (
+          <View 
+            style={[
+              styles.focusIndicator, 
+              { 
+                top: `${focusPoint.y * 100}%` as any, 
+                left: `${focusPoint.x * 100}%` as any 
+              }
+            ]} 
+          />
+        )}
+
+        {/* --- NEW ZOOM CONTROLS WRAPPER --- */}
+        {/* Changed bottom offset from 120 to 160 to move it up */}
+        <View style={[styles.zoomControlsWrapper, { bottom: insets.bottom + 160 }]}>
+          {/* Added Label Label */}
+          <ThemedText style={styles.zoomLabelText}>Zoom</ThemedText>
+          
+          {/* Existing Slider Container (styles modified below) */}
+          <View style={styles.zoomSliderContainer}>
+            <IconSymbol name="minus" size={14} color="#fff" />
+            <View style={{ flex: 1, marginHorizontal: 10, height: 40 }}>
+            <Slider
+              minimumValue={0}
+              maximumValue={0.5} // Capped at 0.5 for better quality on most phones
+              value={zoom}
+              onValueChange={(val) => setZoom(Array.isArray(val) ? val[0] : val)}
+              minimumTrackTintColor={tintColor}
+              maximumTrackTintColor="rgba(255,255,255,0.3)"
+              thumbTintColor="#fff"
+            />
+            </View>
+            <IconSymbol name="plus" size={14} color="#fff" />
+          </View>
+        </View>
+
+
+
         <View style={[styles.overlayTop, { paddingTop: insets.top + 10 }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.roundBtn}>
             <IconSymbol name='chevron.left' size={24} color="#fff" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={toggleFlash} style={styles.roundBtn}>
+          <TouchableOpacity onPress={() => setFlash(f => f === 'off' ? 'on' : 'off')} style={styles.roundBtn}>
             <IconSymbol name={flash === 'on' ? 'bolt.fill' : 'bolt.slash.fill'} size={24} color={flash === 'on' ? "#FFD700" : "#fff"} />
           </TouchableOpacity>
         </View>
 
-        {/* Bottom Controls */}
         <View style={[styles.overlayBottom, { paddingBottom: insets.bottom + 20 }]}>
-          {/* Gallery Preview */}
           <TouchableOpacity 
             style={styles.previewThumbnail} 
             onPress={() => capturedImages.length > 0 && setIsReviewing(true)}
@@ -195,12 +256,10 @@ const handleDeleteImage = (id: string) => {
             )}
           </TouchableOpacity>
 
-          {/* Capture Button */}
           <TouchableOpacity onPress={handleCapture} style={styles.captureBtn}>
             <View style={styles.captureInternal} />
           </TouchableOpacity>
 
-          {/* Proceed Button */}
           <TouchableOpacity 
             style={[styles.doneBtn, { opacity: capturedImages.length > 0 ? 1 : 0.5 }]} 
             onPress={() => capturedImages.length > 0 && setIsReviewing(true)}
@@ -212,7 +271,7 @@ const handleDeleteImage = (id: string) => {
     );
   }
 
-  // 2. Review View
+  // 2. Review Interface
   return (
     <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
@@ -226,16 +285,13 @@ const handleDeleteImage = (id: string) => {
       <ScrollView contentContainerStyle={styles.scrollList}>
         {capturedImages.map((img, idx) => (
           <View key={img.id} style={[styles.card, { backgroundColor: surfaceColor }]}>
-            <Image source={{ uri: img.uri }} style={styles.cardImg} contentFit="cover" />
+            <Image source={{ uri: img.uri }} style={styles.cardImg} contentFit="contain" />
             <View style={styles.cardActions}>
               <TouchableOpacity style={styles.actionBtn} onPress={() => handleStartCrop(idx)}>
                 <IconSymbol name="crop" size={18} color={tintColor} />
                 <ThemedText style={{ color: tintColor, marginLeft: 5 }}>Crop</ThemedText>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.actionBtn} 
-                onPress={() => handleDeleteImage(img.id)}
-              >
+              <TouchableOpacity style={styles.actionBtn} onPress={() => handleDeleteImage(img.id)}>
                 <IconSymbol name="trash" size={18} color={dangerColor} />
                 <ThemedText style={{ color: dangerColor, marginLeft: 5 }}>Delete</ThemedText>
               </TouchableOpacity>
@@ -244,38 +300,41 @@ const handleDeleteImage = (id: string) => {
         ))}
       </ScrollView>
 
+      {/* FOOTER: Fixed Overlap with Safe Area */}
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
         <TouchableOpacity 
-        style={[
-        styles.submitBtn, 
-        { 
-        backgroundColor: successColor, 
-        // Add visual disabled state (opacity)
-        opacity: (isLoading || capturedImages.length === 0) ? 0.5 : 1 
-        }
-        ]} 
-        onPress={handleSubmit} 
-        // Disable the button if loading OR if no images exist
-        disabled={isLoading || capturedImages.length === 0}
+          style={[
+            styles.submitBtn, 
+            { 
+              backgroundColor: successColor, 
+              opacity: (isLoading || capturedImages.length === 0) ? 0.5 : 1 
+            }
+          ]} 
+          onPress={handleSubmit} 
+          disabled={isLoading || capturedImages.length === 0}
         >
-        {isLoading ? (
-         <ActivityIndicator color="#fff" />
-        ) : (
-        <ThemedText style={styles.submitText}>
-        Submit ({capturedImages.length})
-        </ThemedText>
-    )}
-    </TouchableOpacity>
+          {isLoading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <ThemedText style={styles.submitText}>
+              Submit ({capturedImages.length})
+            </ThemedText>
+          )}
+        </TouchableOpacity>
+      </View>
 
-
-      {/* Crop Modal */}
+      {/* --- DYNAMIC CROPPER MODAL --- */}
       {isCropping && editingIndex !== null && (
-        <Modal visible={isCropping} transparent={false} animationType="slide">
-          <ImageEditor
-            imageUri={capturedImages[editingIndex].uri}
-            onEditingComplete={(res) => onCropDone(res.uri)}
-            onEditingCancel={() => setIsCropping(false)}
-          />
-        </Modal>
+        <ImageEditor
+          isVisible={isCropping}
+          imageUri={capturedImages[editingIndex].uri}
+          dynamicCrop={true} // This enables corner-dragging
+          onEditingComplete={(res) => onCropDone(res.uri)}
+          onEditingCancel={() => {
+            setIsCropping(false);
+            setEditingIndex(null);
+          }}
+        />
       )}
     </ThemedView>
   );
@@ -300,12 +359,49 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: 'bold' },
   scrollList: { padding: 16 },
   card: { marginBottom: 20, borderRadius: 15, overflow: 'hidden', elevation: 3, shadowOpacity: 0.1 },
-  cardImg: { width: '100%', height: 250 },
+  cardImg: { width: '100%', height: 350, backgroundColor: '#000' },
   cardActions: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.05)' },
   actionBtn: { flex: 1, flexDirection: 'row', padding: 12, justifyContent: 'center', alignItems: 'center' },
-  footer: { padding: 16 },
-  submitBtn: { padding: 16, borderRadius: 12, alignItems: 'center' },
-  submitText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  // Bottom Footer Area
+  footer: { paddingHorizontal: 16, paddingTop: 10 },
+  submitBtn: { padding: 18, borderRadius: 15, alignItems: 'center' },
+  submitText: { color: '#fff', fontWeight: 'bold', fontSize: 18 },
   permissionText: { textAlign: 'center', marginBottom: 20 },
-  primaryButton: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 }
+  primaryButton: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
+  focusIndicator: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderWidth: 2,
+    borderColor: '#FFD700',
+    borderRadius: 30,
+    transform: [{ translateX: -30 }, { translateY: -30 }], // Center on tap
+  },
+  zoomControlsWrapper: {
+    position: 'absolute',
+    left: 50, // Added side margins so it doesn't hit screen edges
+    right: 50,
+    alignItems: 'center', // Centers the text above the slider
+    // 'bottom' is set inline in the JSX using insets
+  },
+  zoomLabelText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 4, // Spacing between text and slider background
+    // Optional shadow for better readability against camera feed
+    textShadowColor: 'rgba(0, 0, 0, 0.5)', 
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  zoomSliderContainer: {
+    // REMOVED: position: 'absolute', left, right, bottom (handled by wrapper now)
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    paddingHorizontal: 15,
+    borderRadius: 30,
+    height: 45,
+    width: '100%', // Ensure it fills the wrapper width
+  }
 });
