@@ -27,6 +27,7 @@ interface GlobalContextType {
   isHighContrast: boolean;
   medicalInfo: MedicalInfo;
   reports: Report[];
+  isLoading: boolean; // <--- NEW
   saveReport: (reportData: Omit<Report, 'id' | 'date'>) => Promise<void>;
   updateMedicalInfo: (info: Partial<MedicalInfo>) => void;
   setTheme: (t: ThemeType) => void;
@@ -44,6 +45,7 @@ interface GlobalContextType {
 export const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
 
 export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
+  const [isLoading, setIsLoading] = useState(true);
   const [theme, setThemeState] = useState<ThemeType>('system');
   const [isHighContrast, setHighContrastState] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -58,6 +60,7 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const loadState = async () => {
+      try {
       // Keep all async calls inside this function
       const [auth, savedToken ,th, hc, user, medical, savedReports] = await Promise.all([
         AsyncStorage.getItem('isLoggedIn'),
@@ -79,7 +82,11 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
       if (medical) setMedicalInfoState(JSON.parse(medical)); // Parse and set the medical state
       if (savedReports) setReports(JSON.parse(savedReports));
 
-    };
+    }  catch (e) {
+    console.error("Failed to load state", e);
+  } finally {
+        setIsLoading(false);
+  }};
     loadState();
   }, []);
 
@@ -175,6 +182,7 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
       isLoggedIn, 
       userName, // Provide username
       medicalInfo, 
+      isLoading,
       setTheme, 
       setHighContrast, 
       login, 

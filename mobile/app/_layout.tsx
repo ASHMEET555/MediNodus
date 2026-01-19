@@ -1,23 +1,16 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { ActivityIndicator, View } from 'react-native'; // Import ActivityIndicator
 import { GlobalProvider, useGlobalState } from '../context/GlobalStateContext';
 
 function RootLayoutNav() {
-  const { isLoggedIn } = useGlobalState();
+  const { isLoggedIn, isLoading } = useGlobalState(); // Get isLoading
   const segments = useSegments();
   const router = useRouter();
-  const [isReady, setIsReady] = useState(false);
-
-  // Use a second effect to signal when the layout has mounted
-  useEffect(() => {
-    setIsReady(true);
-  }, []);
 
   useEffect(() => {
-    if (!isReady) return; // Wait until the layout is mounted
+    if (isLoading) return; // DO NOT redirect while loading
 
-    // segments can be a union of literal string types; coerce to string to avoid
-    // a TypeScript "no overlap" error when comparing to route-group names.
     const firstSegment = Array.isArray(segments) ? segments[0] : segments;
     const inAuthGroup = String(firstSegment) === '(auth)';
 
@@ -25,10 +18,19 @@ function RootLayoutNav() {
       // Redirect to login if not logged in
       router.replace('/(auth)/login');
     } else if (isLoggedIn && inAuthGroup) {
-      // Redirect to main app if logged in but trying to access auth screens
+      // Redirect to main app if logged in
       router.replace('/(tabs)');
     }
-  }, [isLoggedIn, segments, isReady]);
+  }, [isLoggedIn, segments, isLoading]); // Add isLoading to dependency array
+
+  // Show a loading screen while checking auth state
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   return (
     <Stack screenOptions={{ animation: 'slide_from_right' }}>
