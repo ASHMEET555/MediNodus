@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 load_dotenv()  # Load .env
 
-GEMINI_API_KEY = "AIzaSyAYKA96yKfhnI_1CfVDNq60jgcO9wcmYAo"
+GEMINI_API_KEY = os.environ[GEMINI_API_KEY]
 if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY not set in .env")
 
@@ -138,7 +138,7 @@ CRITICAL: Return ONLY valid JSON matching the EXACT schema format. NO additional
 # load_dotenv()  # Load .env
 
 # # Use your API key directly since you provided it
-# OPENROUTER_API_KEY = "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"
+# OPENROUTER_API_KEY = os.environ[OPENROUTER_API_KEY]
 
 # class LabReportSchema(BaseModel):
 #     patient_name: str = Field(description="Name or 'Unknown'")
