@@ -6,7 +6,7 @@ class User(Document):
     hashed_password: str
     full_name: str | None = None
     created_at: datetime = datetime.utcnow()
-    diagnosis: str = None
+    diagnosis: str | None = None
 
     class Settings:
         name = "user"

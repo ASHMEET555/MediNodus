@@ -1,6 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Form
-from ....services.ocr_service import OCRService
-from ....services.llm_service import LLMService
+
 from ....services.fda_service import FDAService
 
 # MOCK PATIENT HISTORY (Replace with real MongoDB call later)

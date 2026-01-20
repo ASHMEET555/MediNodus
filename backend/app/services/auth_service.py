@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone  # <--- FIXED: Added timezone import
 from passlib.context import CryptContext
 from jose import jwt
 from app.core.config import settings
@@ -21,5 +21,6 @@ class AuthService:
     @staticmethod
     def create_access_token(data: dict):
         to_encode = data.copy()
-        to_encode["exp"] = datetime.now(datetime.timezone.utc) + timedelta(hours=12)
+        # FIXED: Changed 'datetime.timezone.utc' to 'timezone.utc'
+        to_encode["exp"] = datetime.now(timezone.utc) + timedelta(hours=12)
         return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGO)
