@@ -1,29 +1,42 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native'; // Import ActivityIndicator
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import { GlobalProvider, useGlobalState } from '../context/GlobalStateContext';
 
 function RootLayoutNav() {
-  const { isLoggedIn, isLoading } = useGlobalState(); // Get isLoading
+  const { isLoggedIn, isLoading } = useGlobalState();
   const segments = useSegments();
   const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    if (isLoading) return; // DO NOT redirect while loading
+    setIsMounted(true);
+  }, []);
 
-    const firstSegment = Array.isArray(segments) ? segments[0] : segments;
-    const inAuthGroup = String(firstSegment) === '(auth)';
+  useEffect(() => {
+    // 1. Wait for app to mount and loading to finish
+    if (!isMounted || isLoading) return;
+
+    // 2. Determine if user is in the Auth group
+    const inAuthGroup = segments[0] === '(auth)';
 
     if (!isLoggedIn && !inAuthGroup) {
-      // Redirect to login if not logged in
-      router.replace('/(auth)/login');
+      // FORCE Redirect to Login
+      // Using setImmediate ensures this runs after the current render cycle
+      setImmediate(() => {
+        if (router.canGoBack()) {
+          router.dismissAll(); // Clear stack if possible
+        }
+        router.replace('/(auth)/login');
+      });
     } else if (isLoggedIn && inAuthGroup) {
-      // Redirect to main app if logged in
-      router.replace('/(tabs)');
+      // FORCE Redirect to Tabs
+      setImmediate(() => {
+        router.replace('/(tabs)');
+      });
     }
-  }, [isLoggedIn, segments, isLoading]); // Add isLoading to dependency array
+  }, [isLoggedIn, segments, isLoading, isMounted]);
 
-  // Show a loading screen while checking auth state
   if (isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
