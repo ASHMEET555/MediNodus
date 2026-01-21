@@ -2,7 +2,7 @@
 import { Platform } from 'react-native';
 
 // CHANGE THIS to your backend URL
-const API_URL = 'http://10.0.12.177:8000' //ip of pc
+const API_URL = 'http://10.2.0.183:8000' //ip of pc
 
 export const authService = {
   async register(email: string, password: string, fullName: string) {
@@ -27,9 +27,17 @@ export const authService = {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Login failed');
+      const errorData = await response.json();
+      
+      let errorMessage = 'Login failed';
+      if (Array.isArray(errorData.detail)) {
+         errorMessage = errorData.detail.map((e: any) => e.msg).join('\n');
+      } else if (typeof errorData.detail === 'string') {
+         errorMessage = errorData.detail;
+      }
+      
+      throw new Error(errorMessage);
     }
-    return response.json(); // Returns { access_token: "..." }
+    return response.json(); 
   }
 };

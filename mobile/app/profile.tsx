@@ -1,7 +1,7 @@
 import { StyleSheet, TouchableOpacity, View, ScrollView, Switch, Alert, Image, Settings } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-
+import { useGlobalState } from '@/context/GlobalStateContext';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -19,11 +19,19 @@ export default function ProfileScreen() {
   const [isPushEnabled, setPushEnabled] = useState(false);
   const appVersion = "1.0.0 (Beta)";
 
-  // Handlers (Placeholders for now)
+ const { logout, userName } = useGlobalState(); 
+
   const handleLogout = () => {
     Alert.alert("Log Out", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
-      { text: "Log Out", style: "destructive", onPress: () => router.push('/login') }
+      { 
+        text: "Log Out", 
+        style: "destructive", 
+        // 2. CALL LOGOUT (Do not use router.push)
+        onPress: () => {
+          logout(); 
+        } 
+      }
     ]);
   };
 
