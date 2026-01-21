@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException , Depends
 from app.models.user import User
 from app.schemas.auth_schema import UserRegister, UserLogin, TokenResponse
 from app.services.auth_service import AuthService
-from fastapi.security import OAuth2PasswordRequestForm
+
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -23,7 +23,6 @@ async def register(data: UserRegister):
 
     await user.insert()
 
-    # ✅ Do NOT return hashed password
     return {
         "id": str(user.id),
         "email": user.email,
@@ -31,14 +30,12 @@ async def register(data: UserRegister):
     }
 
 @router.post("/login", response_model=TokenResponse)
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    # form_data.username == email
-    # form_data.password == password
-
-    user = await User.find_one(User.email == form_data.username)
+async def login(data: UserLogin):  # <--- CHANGED: Use Pydantic Model (JSON)
+    # Now we access data.email instead of form_data.username
+    user = await User.find_one(User.email == data.email)
 
     if not user or not AuthService.verify_password(
-        form_data.password,
+        data.password,  # <--- CHANGED: Use data.password
         user.hashed_password
     ):
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -48,7 +45,6 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     })
 
     return TokenResponse(access_token=token)
-
 
 @router.post("/logout")
 async def logout():
