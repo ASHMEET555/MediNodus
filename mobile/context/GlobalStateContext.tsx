@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService } from '@/services/auth';
-type ThemeType = 'light' | 'dark';
+type ThemeType = 'light' | 'dark' | 'system';
 
 interface MedicalInfo {
   conditions: string;
@@ -46,7 +46,7 @@ export const GlobalContext = createContext<GlobalContextType | undefined>(undefi
 
 export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
-  const [theme, setThemeState] = useState<ThemeType>('dark');
+  const [theme, setThemeState] = useState<ThemeType>('system');
   const [isHighContrast, setHighContrastState] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState(''); // Initialize username state
