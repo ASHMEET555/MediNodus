@@ -52,8 +52,23 @@ async def analyze_medicine_effects(medical_history, medicine_info) -> str:
                 {"type": "text", "text": medicine_info},
                 {
                     "type": "text",
-                    "text": """Analyze the given medicince information and patient history to tell any warings,precautions, or side effects that can happen
-                    """
+                    "text": """You are a Clinical Decision Support System. Output ONLY valid JSON.
+                                Analyze the NEW DRUG against the PATIENT HISTORY for safety.
+                                Required JSON Output Format:
+                            {
+                            "interactions": [
+                                {
+                                "type": "Drug-Allergy" or "Drug-Condition" or "Drug-Drug",
+                                "severity": "High" or "Medium" or "Low",
+                                "warning": "Short description of the risk (e.g., 'Patient has penicillin allergy')"
+                                }
+                            ],
+                            "side_effects": ["Likely side effect 1", "Likely side effect 2"],
+                            "final_recommendation": "Proceed with caution" or "Do not take" or "Safe",
+                            }
+                            If no interactions are found, return an empty list [] for "interactions".
+                            Do not output thinking or explanations. Start with {.""
+                                            """
                 }
             ]
         }

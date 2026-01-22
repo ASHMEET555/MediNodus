@@ -1,7 +1,7 @@
 # app/models/medical_report.py
 from beanie import Document
 from typing import List
-from backend.app.models.history_entry import MedicalHistoryEntry
+from backend.app.models.history_entry import AppHistoryEntry
 
 class MedicalHistoryRecord(Document):
     user_id: str
@@ -10,7 +10,7 @@ class MedicalHistoryRecord(Document):
     current_medication: str = ""
     chronic_condition: str = ""
     
-    history: List[MedicalHistoryEntry] = []
+    history: List[AppHistoryEntry] = []
 
     class Settings:
         name = "medical_reports"
