@@ -1,31 +1,19 @@
-from transformers import AutoProcessor, AutoModelForImageTextToText,BitsAndBytesConfig
+from transformers import pipeline
 from PIL import Image
 import torch
-print("CUDA:", torch.cuda.is_available())
-if torch.cuda.is_available():
-    print("GPU:", torch.cuda.get_device_name(0))
-    print("VRAM GB:", torch.cuda.get_device_properties(0).total_memory / 1e9)
-MODEL_ID = "unsloth/medgemma-1.5-4b-it-unsloth-bnb-4bit"
-
-# 🔥 4-bit quantization config (GPU friendly)
-bnb_config = BitsAndBytesConfig(
-    load_in_4bit=True,
-    bnb_4bit_compute_dtype=torch.bfloat16,
-    bnb_4bit_use_double_quant=True,
-    llm_int8_enable_fp32_cpu_offload=True  # prevents OOM
-)
-
-# ✅ Load model on GPU
-model = AutoModelForImageTextToText.from_pretrained(
-    MODEL_ID,
-    quantization_config=bnb_config,
-    device_map="gpu"  # GPU first, CPU offload if needed
-)
-
-processor = AutoProcessor.from_pretrained(MODEL_ID, use_fast=True)
 
 
-async def analyze_medicine_image(image: Image , type: str) -> str:
+def initialize_model():
+    model_id = "unsloth/medgemma-1.5-4b-it-unsloth-bnb-4bit"
+    pipe = pipeline(
+    "image-text-to-text",
+    model=model_id,
+    dtype=torch.bfloat16,
+    )
+
+    return pipe
+
+def analyze_medicine_image(pipe, image)-> str:
     
     messages = [
         {
@@ -34,46 +22,95 @@ async def analyze_medicine_image(image: Image , type: str) -> str:
                 {"type": "image", "image": image},
                 {
                     "type": "text",
-                    "text": """
-Look at the medicine / tablet / capsule image.
-
-Extract the following fields and return ONLY valid JSON:
-
-{
-  "drug_name": string,
-  "strength": string,
-  "indications": string,
-  "usage_instructions": string,
-  "warnings": string,
-  "prescription_drug": "Yes" | "No" | "Unknown"
-}
-If unknown, write "Unknown".
-"""
+                    "text": """Analyze this medicine image.
+                    Extract the following in JSON format:
+                    - drug_name
+                    - strength
+                    - indications
+                    - prescription_drug (Yes/No)
+                    """
                 }
             ]
         }
     ]
+    print("Request sent...")
+    output = pipe(text=messages, max_new_tokens=2000)
+    print("Response received")
+    return output[0]["generated_text"][-1]["content"]
 
-    inputs = processor.apply_chat_template(
-        messages,
-        add_generation_prompt=True,
-        tokenize=True,
-        return_dict=True,
-        return_tensors="pt"
-    ).to(model.device, dtype=torch.bfloat16)
 
-    input_len = inputs["input_ids"].shape[-1]
+def analyse_medicine_effects(pipe, medical_history, medicine_info) -> str:    
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": medical_history },
+                {"type": "text", "text": medicine_info},
+                {
+                    "type": "text",
+                    "text": """Analyze this medicine and patient history to tell any warings,precautions, or side effects that can happen
+                    """
+                }
+            ]
+        }
+    ]
+    print("Request sent...")
+    output = pipe(text=messages, max_new_tokens=2000)
+    print("Response received")
+    return output[0]["generated_text"][-1]["content"]
 
-    with torch.inference_mode():
-        generation = model.generate(
-            **inputs,
-            max_new_tokens=1000,
-            do_sample=False
-        )
 
-    decoded = processor.decode(
-        generation[0][input_len:],
-        skip_special_tokens=True
-    )
+def analyse_report(pipe, report):
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "image", "image": report},
+                {"type": "text", "text" :"""You are a helpful medical API. Analyze the image and return a valid JSON object.
+    
+    Rules:
+    1. Extract 'patient_name' and 'report_date'.
+    2. 'summary': Write a polite, 2-sentence summary for the patient (e.g., "Your blood count shows low iron levels.").
+    3. 'abnormalities': List ONLY test results that are marked High or Low. Ignore normal results.
+    4. 'recommendations': Provide 3 simple, patient-friendly health tips based on the abnormalities.
+    5. ONLY return the json response nothing else
+    
+    Output Format (Strict JSON):
+    {
+      "patient_name": "string",
+      "report_date": "string",
+      "patient_summary": "string",
+      "abnormalities": [
+        {"test": "string", "value": "string", "status": "High/Low"}
+      ],
+      "recommendations": ["string", "string", "string"]
+    }
+    """
+            }]}]
 
-    return decoded
+
+    print("Request sent...")
+    output = pipe(text=messages, max_new_tokens=2000)
+    print("Response received")
+    return output[0]["generated_text"][-1]["content"]
+
+import json
+import re
+
+def clean_and_parse_json(raw_text):
+    # 1. Regex to find the JSON block { ... }
+    # This ignores everything before the first '{' (the thought process)
+    # and everything after the last '}'
+    match = re.search(r"(\{.*\})", raw_text, re.DOTALL)
+    
+    if match:
+        json_str = match.group(1)
+        try:
+            return json.loads(json_str)
+        except json.JSONDecodeError:
+            print("Found JSON brackets, but content was invalid.")
+            return None
+    else:
+        print("No JSON object found in output.")
+        return None
+
