@@ -1,32 +1,19 @@
-// mobile/hooks/use-theme-color.ts
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from 'react-native-paper';
+import { useColorScheme } from './use-color-scheme';
 
 export function useThemeColor(
   props: { light?: string; dark?: string; highContrast?: string },
-  colorName: keyof typeof Colors.light
+  colorName: string // Relaxed type since we use Paper now
 ) {
-  // 1. Get current scheme (light, dark, or highContrast)
-  const scheme = useColorScheme() ?? 'light';
+  const theme = useTheme();
+  const scheme = useColorScheme() as string | 'light' | 'dark' | 'highContrast'; // 'light', 'dark', or 'highContrast'
 
-  // 2. Check if a specific color was passed via props for this theme
-  const colorFromProps = props[scheme as keyof typeof props];
-  if (colorFromProps) return colorFromProps;
+  // 1. Priority: Specific prop for the current mode
+  if (scheme === 'highContrast' && props.highContrast) return props.highContrast;
+  if (scheme === 'dark' && props.dark) return props.dark;
+  if (scheme === 'light' && props.light) return props.light;
 
-  // 3. Robust lookup with fallbacks
-  // First, try the exact theme (handles highContrast, light, dark)
-  const themeColors = Colors[scheme as keyof typeof Colors];
-  
-  if (themeColors && themeColors[colorName as keyof typeof themeColors]) {
-    return themeColors[colorName as keyof typeof themeColors];
-  }
-
-  // 4. Emergency Fallbacks if the requested theme or color is missing
-  // If highContrast fails, fall back to dark
-  if (scheme === 'highContrast') {
-    return Colors.dark[colorName] || '#000000';
-  }
-
-  // Final fallback to light theme, then pure black
-  return Colors.light[colorName] || '#000000';
+  // 2. Fallback: Return the color from the active Paper Theme
+  // @ts-ignore - Paper colors are dynamic
+  return theme.colors[colorName] || theme.colors.primary;
 }

@@ -1,58 +1,66 @@
-import { FlatList, TouchableOpacity, View, StyleSheet } from 'react-native';
-import { useGlobalState } from '@/context/GlobalStateContext';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+// mobile/app/(tabs)/reports.tsx
+import React from 'react';
+import { FlatList, StyleSheet, View } from 'react-native';
+import { Appbar, List, Surface, Text, Divider, useTheme, Avatar } from 'react-native-paper';
+import { useGlobalState } from '../../context/GlobalStateContext';
 
 export default function ReportsScreen() {
   const { reports } = useGlobalState();
-  const theme = Colors[useColorScheme() ?? 'light'];
+  const theme = useTheme();
 
-  const renderReportItem = ({ item }: { item: any }) => (
-    <TouchableOpacity 
-      style={[styles.reportCard, { backgroundColor: theme.cardBackground, borderBottomColor: theme.border }]}
-      onPress={() => {/* We will add View Details later */}}
-    >
-      <View style={[styles.statusIndicator, { backgroundColor: item.status === 'safe' ? '#4ADE80' : '#F87171' }]} />
-      <View style={styles.reportInfo}>
-        <ThemedText type="defaultSemiBold">{item.title}</ThemedText>
-        <ThemedText style={styles.dateText}>{item.date}</ThemedText>
-      </View>
-      <IconSymbol name="chevron.right" size={20} color={theme.icon} />
-    </TouchableOpacity>
+  // Render each history item using RNP components
+  const renderItem = ({ item }: { item: any }) => (
+    <List.Item
+      title={item.title}
+      description={item.date}
+      titleStyle={{ fontWeight: '600' }}
+      // Dynamic icon based on status
+      left={props => (
+        <Avatar.Icon 
+          {...props} 
+          size={40} 
+          icon="file-document-outline" 
+          style={{ backgroundColor: item.status === 'safe' ? theme.colors.primaryContainer : theme.colors.errorContainer }}
+          color={item.status === 'safe' ? theme.colors.primary : theme.colors.error}
+        />
+      )}
+      right={props => <List.Icon {...props} icon="chevron-right" />}
+      onPress={() => console.log('View Report', item.id)}
+      style={styles.listItem}
+    />
   );
 
   return (
-    <ThemedView style={styles.container}>
+    <Surface style={styles.container}>
+      {/* Paper Header */}
+      <Appbar.Header elevated>
+        <Appbar.Content title="Medical History" />
+        <Appbar.Action icon="magnify" onPress={() => {}} />
+        <Appbar.Action icon="filter-variant" onPress={() => {}} />
+      </Appbar.Header>
+
       <FlatList
         data={reports}
         keyExtractor={(item) => item.id}
-        renderItem={renderReportItem}
+        renderItem={renderItem}
+        ItemSeparatorComponent={() => <Divider />}
         contentContainerStyle={styles.listContent}
-        ListHeaderComponent={<ThemedText type="title" style={styles.header}>History</ThemedText>}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <IconSymbol name="doc.text.magnifyingglass" size={48} color={theme.icon} />
-            <ThemedText style={styles.emptyText}>No reports analyzed yet.</ThemedText>
+            <Avatar.Icon size={64} icon="clipboard-text-off-outline" style={{ backgroundColor: 'transparent' }} color={theme.colors.outline} />
+            <Text variant="bodyLarge" style={{ color: theme.colors.outline, marginTop: 16 }}>
+              No reports found
+            </Text>
           </View>
         }
       />
-    </ThemedView>
+    </Surface>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { padding: 20, paddingTop: 60 },
-  listContent: { paddingBottom: 100 },
-  reportCard: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1 },
-  statusIndicator: { width: 4, height: 40, borderRadius: 2, marginRight: 12 },
-  reportInfo: { flex: 1 },
-  dateText: { fontSize: 13, opacity: 0.6, marginTop: 4 },
-  emptyState: { alignItems: 'center', marginTop: 100, gap: 12 },
-  emptyText: { opacity: 0.5 }
+  listContent: { paddingBottom: 80 },
+  listItem: { paddingVertical: 8 },
+  emptyState: { alignItems: 'center', justifyContent: 'center', marginTop: 100 },
 });

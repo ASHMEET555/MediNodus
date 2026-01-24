@@ -1,8 +1,7 @@
-import { StyleSheet, Text, type TextProps } from 'react-native';
+import { Text, TextProps, useTheme } from 'react-native-paper';
+import { StyleSheet } from 'react-native';
 
-import { useThemeColor } from '@/hooks/use-theme-color';
-
-export type ThemedTextProps = TextProps & {
+export type ThemedTextProps = TextProps<any> & {
   lightColor?: string;
   darkColor?: string;
   type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link';
@@ -15,46 +14,48 @@ export function ThemedText({
   type = 'default',
   ...rest
 }: ThemedTextProps) {
-  const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
+  const theme = useTheme();
+  
+  let textColor = theme.colors.onBackground;
+  if (theme.dark && darkColor) textColor = darkColor;
+  if (!theme.dark && lightColor) textColor = lightColor;
+
+  // Map 'type' to React Native Paper variants
+  let variant: 'bodyMedium' | 'headlineMedium' | 'titleMedium' | 'bodyLarge' = 'bodyMedium';
+  let customStyle = {};
+
+  switch (type) {
+    case 'title':
+      variant = 'headlineMedium';
+      customStyle = styles.title;
+      break;
+    case 'defaultSemiBold':
+      variant = 'bodyLarge';
+      customStyle = styles.semiBold;
+      break;
+    case 'subtitle':
+      variant = 'titleMedium';
+      customStyle = styles.subtitle;
+      break;
+    case 'link':
+      variant = 'bodyMedium';
+      textColor = theme.colors.primary;
+      break;
+    default:
+      variant = 'bodyMedium';
+  }
 
   return (
     <Text
-      style={[
-        { color },
-        type === 'default' ? styles.default : undefined,
-        type === 'title' ? styles.title : undefined,
-        type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
-        type === 'subtitle' ? styles.subtitle : undefined,
-        type === 'link' ? styles.link : undefined,
-        style,
-      ]}
+      variant={variant}
+      style={[{ color: textColor }, customStyle, style]}
       {...rest}
     />
   );
 }
 
 const styles = StyleSheet.create({
-  default: {
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  defaultSemiBold: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    lineHeight: 32,
-  },
-  subtitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  link: {
-    lineHeight: 30,
-    fontSize: 16,
-    color: '#0a7ea4',
-  },
+  title: { fontWeight: 'bold' },
+  semiBold: { fontWeight: '600' },
+  subtitle: { fontWeight: '500' },
 });
