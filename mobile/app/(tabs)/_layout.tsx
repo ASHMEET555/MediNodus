@@ -1,43 +1,40 @@
-import { Tabs, useRouter } from 'expo-router';
+// app/(tabs)/_layout.tsx
+import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform, View, TouchableOpacity, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import this
-
+import { Platform, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useThemeColor } from '@/hooks/use-theme-color'; // Use your hook!
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  const router = useRouter();
-  const themeColors = Colors[colorScheme ?? 'light'];
+  // Use the hook to safely resolve each color
+  const tintColor = useThemeColor({}, 'tint');
+  const backgroundColor = useThemeColor({}, 'background');
+  const iconColor = useThemeColor({}, 'icon');
   
-  // Get safe area insets (bottom will be > 0 on phones with gesture bars or nav buttons)
   const insets = useSafeAreaInsets();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: themeColors.tint,
+        tabBarActiveTintColor: tintColor, // Safe
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
           position: 'absolute',
           borderTopWidth: 0,
           elevation: 0,
-          // Add the bottom inset to the base height (60)
           height: 60 + insets.bottom, 
-          // Push internal content up by the inset amount
           paddingBottom: insets.bottom, 
-          backgroundColor: themeColors.background,
+          backgroundColor: backgroundColor, // Safe
           ...Platform.select({
-            ios: { shadowColor: "#333" , shadowOpacity: 0.1, shadowRadius: 10 },
+            ios: { shadowColor: "#333", shadowOpacity: 0.1, shadowRadius: 10 },
             android: { elevation: 10 },
           }),
         },
       }}>
-
+;
       <Tabs.Screen
         name="index"
         options={{
