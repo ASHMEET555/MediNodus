@@ -39,5 +39,25 @@ export const authService = {
       throw new Error(errorMessage);
     }
     return response.json(); 
+  },
+
+  async logout(token: string) {
+    try {
+      const response = await fetch(`${API_URL}/auth/logout`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        console.warn('Backend logout failed, clearing local state anyway.');
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      // We swallow the error so the frontend still logs out
+    }
   }
+
 };

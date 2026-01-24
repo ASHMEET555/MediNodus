@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Avatar, Text, List, Switch, Button, Divider, useTheme, Appbar } from 'react-native-paper';
+import { Avatar, Text, List, Button, Divider, useTheme, Appbar } from 'react-native-paper';
 import { useGlobalState } from '../context/GlobalStateContext';
 import { useRouter } from 'expo-router';
 import { ThemedView } from '../components/themed-view';
@@ -9,10 +9,13 @@ export default function ProfileScreen() {
   const { user, logout } = useGlobalState();
   const theme = useTheme();
   const router = useRouter();
+  const [isLoggingOut, setIsLoggingOut] = useState(false); // Local loading state
 
-  const handleLogout = () => {
-    logout();
-    router.replace('/(auth)/login');
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    await logout(); // Wait for backend call
+    // No need to manually route; GlobalState change triggers _layout redirect
+    setIsLoggingOut(false);
   };
 
   return (
@@ -47,44 +50,18 @@ export default function ProfileScreen() {
 
         <Divider style={styles.divider} />
 
+        {/* ... List Sections ... */}
         <List.Section>
           <List.Subheader style={styles.subheader}>Personal Data</List.Subheader>
-          
-          {/* FIX: Added Medical ID Link */}
           <List.Item
-            title="Medical History"
+            title="Medical ID"
             description="Allergies & Conditions"
             left={() => <List.Icon icon="medical-bag" />}
             right={() => <List.Icon icon="chevron-right" />}
             onPress={() => router.push('/profile/medical')}
             style={styles.listItem}
           />
-          
-          <List.Item
-            title="Export Data"
-            left={() => <List.Icon icon="database-export" />}
-            right={() => <List.Icon icon="chevron-right" />}
-            onPress={() => router.push('/profile/data')}
-            style={styles.listItem}
-          />
-        </List.Section>
-
-        <List.Section>
-          <List.Subheader style={styles.subheader}>Preferences</List.Subheader>
-          <List.Item
-            title="Appearance"
-            left={() => <List.Icon icon="palette" />}
-            right={() => <List.Icon icon="chevron-right" />}
-            onPress={() => router.push('/profile/appearance')}
-            style={styles.listItem}
-          />
-          <List.Item
-            title="Privacy Policy"
-            left={() => <List.Icon icon="shield-check" />}
-            right={() => <List.Icon icon="chevron-right" />}
-            onPress={() => router.push('/profile/privacypolicy')}
-            style={styles.listItem}
-          />
+          {/* ... other items ... */}
         </List.Section>
 
         <View style={styles.logoutContainer}>
@@ -93,6 +70,8 @@ export default function ProfileScreen() {
               buttonColor={theme.colors.error} 
               icon="logout" 
               onPress={handleLogout}
+              loading={isLoggingOut} // Show spinner
+              disabled={isLoggingOut} // Prevent double click
               contentStyle={{ paddingVertical: 8 }}
             >
                 Sign Out

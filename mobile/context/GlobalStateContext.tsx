@@ -45,7 +45,7 @@ interface GlobalContextType {
   saveReport: (reportData: Omit<Report, 'id' | 'date'>) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, fullName: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   hapticFeedback: (style?: Haptics.ImpactFeedbackStyle) => void;
 }
 
@@ -152,12 +152,20 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const logout = async () => {
-    setIsLoggedIn(false);
-    setUser(null);
+ const logout = async () => {
+    if (token) {
+      try {
+        // 1. Call Backend to invalidate session
+        await authService.logout(token);
+      } catch (e) {
+        console.log("Error logging out from backend:", e);
+      }
+    }
+    
+    // 2. Clear Local State (Triggers Router Redirect)
     setToken(null);
-    await AsyncStorage.multiRemove(['isLoggedIn', 'userToken', 'user']);
-    hapticFeedback(Haptics.ImpactFeedbackStyle.Medium);
+    setUser(null);
+    setIsLoggedIn(false);
   };
 
   const setTheme = (t: ThemeType) => {
