@@ -1,106 +1,77 @@
-// mobile/app/profile/medical.tsx
-import { useState } from 'react';
-import { StyleSheet, TouchableOpacity, View, TextInput, ScrollView, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, ScrollView } from 'react-native';
+import { Appbar, TextInput, Button, Surface, HelperText } from 'react-native-paper';
 import { useRouter } from 'expo-router';
+import { useGlobalState } from '../../context/GlobalStateContext';
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useGlobalState } from '@/context/GlobalStateContext';
-
-
-export default function MedicalInfoScreen() {
+export default function MedicalInfo() {
   const router = useRouter();
-  const theme = Colors[useColorScheme() ?? 'light'];
+  const { medicalInfo, updateMedicalInfo } = useGlobalState();
+  
+  const [info, setInfo] = useState(medicalInfo);
+  const [saving, setSaving] = useState(false);
 
-  const { medicalInfo, updateMedicalInfo } = useGlobalState(); //
-
-  // Initialize local form state from global context
-  const [form, setForm] = useState(medicalInfo);
-
-  const handleUpdate = async () => {
-    await updateMedicalInfo(form); //
-    Alert.alert("Context Updated", "This info will now be used by MediNodus AI for your analysis.");
-    router.back();
+  const handleSave = () => {
+    setSaving(true);
+    updateMedicalInfo(info);
+    setTimeout(() => {
+      setSaving(false);
+      router.back();
+    }, 800);
   };
 
   return (
-    <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <ThemedText style={styles.description}>
-          Provide additional context to help our AI analyze your reports more accurately based on your health history.
-        </ThemedText>
+    <Surface style={styles.container}>
+      <Appbar.Header elevated>
+        <Appbar.BackAction onPress={() => router.back()} />
+        <Appbar.Content title="Medical Data" />
+      </Appbar.Header>
 
-        <View style={styles.section}>
-          <ThemedText type="defaultSemiBold">Chronic Conditions</ThemedText>
-          <TextInput
-            style={[styles.textArea, { backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }]}
-            multiline
-            numberOfLines={4}
-            value={form.conditions}
-            onChangeText={(text) => setForm({ ...form, conditions: text })}
-            placeholder="e.g., Asthma, Heart Disease..."
-            placeholderTextColor={theme.icon}
-          />
-        </View>
+      <ScrollView contentContainerStyle={styles.content}>
+        <HelperText type="info" visible>
+          This information improves AI analysis accuracy.
+        </HelperText>
 
-        <View style={styles.section}>
-          <ThemedText type="defaultSemiBold">Allergies</ThemedText>
-          <TextInput
-            style={[styles.textArea, { backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }]}
-            multiline
-            numberOfLines={3}
-            value={form.allergies}
-            onChangeText={(text) => setForm({ ...form, allergies: text })}
-            placeholder="e.g., Pollen, Dairy, specific drugs..."
-            placeholderTextColor={theme.icon}
-          />
-        </View>
+        <TextInput
+          label="Known Conditions"
+          value={info.conditions}
+          onChangeText={(t) => setInfo({ ...info, conditions: t })}
+          mode="outlined"
+          multiline
+          numberOfLines={3}
+          style={styles.input}
+        />
 
-        <View style={styles.section}>
-          <ThemedText type="defaultSemiBold">Current Medications</ThemedText>
-          <TextInput
-            style={[styles.textArea, { backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }]}
-            multiline
-            numberOfLines={3}
-            value={form.medications}
-            onChangeText={(text) => setForm({ ...form, medications: text })}
-            placeholder="List any medicine you take regularly..."
-            placeholderTextColor={theme.icon}
-          />
-        </View>
+        <TextInput
+          label="Allergies"
+          value={info.allergies}
+          onChangeText={(t) => setInfo({ ...info, allergies: t })}
+          mode="outlined"
+          multiline
+          style={styles.input}
+          right={<TextInput.Icon icon="alert-circle-outline" />}
+        />
 
-        <TouchableOpacity 
-          style={[styles.updateButton, { backgroundColor: theme.tint }]}
-          onPress={handleUpdate}
-        >
-          <ThemedText style={styles.updateButtonText}>Update AI Context</ThemedText>
-        </TouchableOpacity>
+        <TextInput
+          label="Current Medications"
+          value={info.medications}
+          onChangeText={(t) => setInfo({ ...info, medications: t })}
+          mode="outlined"
+          multiline
+          style={styles.input}
+          right={<TextInput.Icon icon="pill" />}
+        />
+
+        <Button mode="contained" onPress={handleSave} loading={saving} icon="content-save">
+          Save Medical Data
+        </Button>
       </ScrollView>
-    </ThemedView>
+    </Surface>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContent: { padding: 20, gap: 24 },
-  description: { fontSize: 15, opacity: 0.7, lineHeight: 22 },
-  section: { gap: 10 },
-  textArea: {
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 16,
-    fontSize: 16,
-    textAlignVertical: 'top',
-    minHeight: 100,
-  },
-  updateButton: {
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
-  },
-  updateButtonText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
+  content: { padding: 20 },
+  input: { marginBottom: 20, backgroundColor: 'transparent' },
 });

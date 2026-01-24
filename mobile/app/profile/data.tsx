@@ -1,110 +1,61 @@
-import { StyleSheet, TouchableOpacity, View, ScrollView, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet } from 'react-native';
+import { Appbar, List, Switch, Surface, Button, Dialog, Portal, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export default function DataManagementScreen() {
+export default function DataPrivacyScreen() {
   const router = useRouter();
-  const theme = Colors[useColorScheme() ?? 'light'];
-
-  const handleClearCloudData = () => {
-    Alert.alert(
-      "Clear Cloud Data",
-      "This will delete all your uploaded reports and analysis history from our servers. This action cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Delete Everything", 
-          style: "destructive", 
-          onPress: () => {
-            // Logic to call backend API to wipe data
-            Alert.alert("Deleted", "Your cloud data has been cleared.");
-          } 
-        }
-      ]
-    );
-  };
-
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      "Delete Account",
-      "Are you sure you want to delete your account? You will lose access to all your data immediately.",
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Delete Account", 
-          style: "destructive", 
-          onPress: () => {
-            // Logic to call backend API for account deletion
-            router.dismissAll();
-          } 
-        }
-      ]
-    );
-  };
+  const [analytics, setAnalytics] = useState(true);
+  const [visible, setVisible] = useState(false);
 
   return (
-    <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <ThemedText style={styles.description}>
-          Manage how your health data is stored and handled on MediNodus servers.
-        </ThemedText>
+    <Surface style={styles.container}>
+      <Appbar.Header elevated>
+        <Appbar.BackAction onPress={() => router.back()} />
+        <Appbar.Content title="Data & Privacy" />
+      </Appbar.Header>
 
-        <View style={styles.section}>
-          <ThemedText type="defaultSemiBold" style={styles.sectionHeader}>Storage</ThemedText>
-          <TouchableOpacity 
-            style={[styles.actionCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
-            onPress={handleClearCloudData}
-          >
-            <View style={styles.cardLeft}>
-              <IconSymbol name="cloud.fill" size={24} color={theme.icon} />
-              <View>
-                <ThemedText type="defaultSemiBold">Clear Cloud Data</ThemedText>
-                <ThemedText style={styles.cardSubtext}>Remove all reports from servers</ThemedText>
-              </View>
-            </View>
-            <IconSymbol name="chevron.right" size={20} color={theme.icon} />
-          </TouchableOpacity>
-        </View>
+      <List.Section>
+        <List.Subheader>Usage Data</List.Subheader>
+        <List.Item
+          title="Share Analytics"
+          description="Help improve MediNodus by sharing anonymous usage data."
+          right={() => <Switch value={analytics} onValueChange={setAnalytics} />}
+        />
+      </List.Section>
 
-        <View style={styles.section}>
-          <ThemedText type="defaultSemiBold" style={styles.sectionHeader}>Danger Zone</ThemedText>
-          <TouchableOpacity 
-            style={[styles.actionCard, { backgroundColor: theme.cardBackground, borderColor: theme.danger + '40' }]}
-            onPress={handleDeleteAccount}
-          >
-            <View style={styles.cardLeft}>
-              <IconSymbol name="trash.fill" size={24} color={theme.danger} />
-              <View>
-                <ThemedText type="defaultSemiBold" style={{ color: theme.danger }}>Delete Account</ThemedText>
-                <ThemedText style={styles.cardSubtext}>Permanently close your account</ThemedText>
-              </View>
-            </View>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </ThemedView>
+      <List.Section>
+        <List.Subheader>Account Data</List.Subheader>
+        <List.Item
+          title="Export My Data"
+          description="Download a copy of your medical history."
+          left={() => <List.Icon icon="download" />}
+          onPress={() => {}}
+        />
+        <List.Item
+          title="Delete Account"
+          titleStyle={{ color: 'red' }}
+          left={() => <List.Icon icon="delete" color="red" />}
+          onPress={() => setVisible(true)}
+        />
+      </List.Section>
+
+      <Portal>
+        <Dialog visible={visible} onDismiss={() => setVisible(false)}>
+          <Dialog.Title>Delete Account?</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium">This action cannot be undone. All your reports will be permanently deleted.</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setVisible(false)}>Cancel</Button>
+            <Button textColor="red" onPress={() => setVisible(false)}>Delete</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+    </Surface>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContent: { padding: 20, gap: 24 },
-  description: { fontSize: 15, opacity: 0.7, lineHeight: 22 },
-  section: { gap: 12 },
-  sectionHeader: { fontSize: 13, textTransform: 'uppercase', opacity: 0.6, marginLeft: 4 },
-  actionCard: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    padding: 16, 
-    borderRadius: 16, 
-    borderWidth: 1 
-  },
-  cardLeft: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  cardSubtext: { fontSize: 13, opacity: 0.6, marginTop: 2 }
 });

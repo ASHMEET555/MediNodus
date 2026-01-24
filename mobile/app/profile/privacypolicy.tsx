@@ -1,48 +1,91 @@
-import { StyleSheet, ScrollView, View } from 'react-native';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import React from 'react';
+import { StyleSheet, ScrollView } from 'react-native';
+import { Appbar, Surface, Text, Divider, Title, Paragraph, List } from 'react-native-paper';
+import { useRouter } from 'expo-router';
 
 export default function PrivacyPolicyScreen() {
-  const theme = Colors[useColorScheme() ?? 'light'];
+  const router = useRouter();
 
   return (
-    <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <ThemedText type="subtitle" style={styles.title}>Privacy Policy</ThemedText>
-        <ThemedText style={styles.date}>Last Updated: October 2025</ThemedText>
-        
-        <View style={styles.section}>
-          <ThemedText type="defaultSemiBold">1. Data Collection</ThemedText>
-          <ThemedText style={styles.body}>
-            MediNodus collects health data from your scanned reports to provide AI-powered analysis. This data is encrypted and stored securely.
-          </ThemedText>
-        </View>
+    <Surface style={styles.container}>
+      {/* Header */}
+      <Appbar.Header elevated>
+        <Appbar.BackAction onPress={() => router.back()} />
+        <Appbar.Content title="Privacy Policy" />
+      </Appbar.Header>
 
-        <View style={styles.section}>
-          <ThemedText type="defaultSemiBold">2. AI Analysis</ThemedText>
-          <ThemedText style={styles.body}>
-            We use Google Gemini and RAG (Retrieval-Augmented Generation) to process your data. Your personal health information is never used to train global AI models.
-          </ThemedText>
-        </View>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Title style={styles.mainTitle}>Your Privacy Matters</Title>
+        <Paragraph style={styles.intro}>
+          At MediNodus, we take your medical data privacy seriously. This document outlines how we collect, use, and protect your personal health information.
+        </Paragraph>
 
-        <View style={styles.section}>
-          <ThemedText type="defaultSemiBold">3. Your Rights</ThemedText>
-          <ThemedText style={styles.body}>
-            You can delete your account and all associated cloud data at any time through the Settings menu.
-          </ThemedText>
-        </View>
+        <Divider style={styles.divider} />
+
+        <List.Section>
+          <List.Subheader style={styles.subheader}>1. Data Collection</List.Subheader>
+          <Paragraph style={styles.paragraph}>
+            We collect data that you explicitly provide, including medical history, allergies, and uploaded medical reports. All image processing for reports happens securely.
+          </Paragraph>
+
+          <List.Subheader style={styles.subheader}>2. AI Processing</List.Subheader>
+          <Paragraph style={styles.paragraph}>
+            Your medical reports are analyzed by our AI algorithms to generate summaries. We do not use your personal health data to train our public models without your explicit consent.
+          </Paragraph>
+
+          <List.Subheader style={styles.subheader}>3. Local Storage</List.Subheader>
+          <Paragraph style={styles.paragraph}>
+            Where possible, sensitive data is stored locally on your device using secure encryption. Cloud syncing is optional and encrypted at rest.
+          </Paragraph>
+
+          <List.Subheader style={styles.subheader}>4. Data Sharing</List.Subheader>
+          <Paragraph style={styles.paragraph}>
+            We never sell your data to third parties. Data is only shared with medical professionals when you explicitly use the "Share" feature.
+          </Paragraph>
+        </List.Section>
+
+        <Divider style={styles.divider} />
+
+        <Text variant="bodySmall" style={styles.footer}>
+          Last updated: January 24, 2026
+        </Text>
       </ScrollView>
-    </ThemedView>
+    </Surface>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scrollContent: { padding: 20 },
-  title: { marginBottom: 8 },
-  date: { fontSize: 13, opacity: 0.5, marginBottom: 24 },
-  section: { marginBottom: 20, gap: 8 },
-  body: { lineHeight: 22, opacity: 0.8 }
+  container: {
+    flex: 1,
+  },
+  content: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  mainTitle: {
+    marginBottom: 10,
+    fontWeight: 'bold',
+  },
+  intro: {
+    marginBottom: 20,
+    opacity: 0.8,
+  },
+  divider: {
+    marginVertical: 10,
+  },
+  subheader: {
+    fontWeight: 'bold',
+    fontSize: 16,
+    paddingLeft: 0,
+    marginTop: 10,
+  },
+  paragraph: {
+    marginBottom: 10,
+    lineHeight: 22,
+  },
+  footer: {
+    textAlign: 'center',
+    marginTop: 30,
+    opacity: 0.5,
+  },
 });
