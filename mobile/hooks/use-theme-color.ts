@@ -1,32 +1,29 @@
-// mobile/hooks/use-theme-color.ts
+/**
+ * Learn more about light and dark modes:
+ * https://docs.expo.dev/guides/color-schemes/
+ */
+
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export function useThemeColor(
-  props: { light?: string; dark?: string; highContrast?: string },
+  props: { light?: string; dark?: string },
   colorName: keyof typeof Colors.light
 ) {
-  // 1. Get current scheme (light, dark, or highContrast)
-  const scheme = useColorScheme() ?? 'light';
+  // Determine scheme from the unified hook (which safely reads global state).
+  const scheme = useColorScheme();
+  const resolvedBase: 'light' | 'dark' = scheme === 'highContrast' ? 'dark' : (scheme as 'light' | 'dark');
+  const isHighContrast = scheme === 'highContrast';
 
-  // 2. Check if a specific color was passed via props for this theme
-  const colorFromProps = props[scheme as keyof typeof props];
+  // If a prop color for the resolved theme exists, prefer it.
+  const colorFromProps = props[resolvedBase];
   if (colorFromProps) return colorFromProps;
 
-  // 3. Robust lookup with fallbacks
-  // First, try the exact theme (handles highContrast, light, dark)
-  const themeColors = Colors[scheme as keyof typeof Colors];
-  
-  if (themeColors && themeColors[colorName as keyof typeof themeColors]) {
-    return themeColors[colorName as keyof typeof themeColors];
+  // If high contrast is enabled, only override certain semantic colors.
+  const highContrastOverridden = ['text', 'icon', 'tint', 'border', 'textSecondary', 'success', 'danger'];
+  if (isHighContrast && highContrastOverridden.includes(colorName as string)) {
+    return Colors.highContrast[colorName as keyof typeof Colors.highContrast] as string;
   }
 
-  // 4. Emergency Fallbacks if the requested theme or color is missing
-  // If highContrast fails, fall back to dark
-  if (scheme === 'highContrast') {
-    return Colors.dark[colorName] || '#000000';
-  }
-
-  // Final fallback to light theme, then pure black
-  return Colors.light[colorName] || '#000000';
+  return Colors[resolvedBase][colorName];
 }

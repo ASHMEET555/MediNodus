@@ -16,7 +16,7 @@
 #     return str(path)
 
 import cloudinary
-from app.config import settings
+from backend.app.config import settings
 import cloudinary.uploader
 from io import BytesIO
 
