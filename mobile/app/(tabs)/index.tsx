@@ -1,5 +1,7 @@
 import { ScrollView, StyleSheet } from 'react-native';
 import { Surface, Text, Card, Button, Avatar, IconButton } from 'react-native-paper';
+import { Redirect } from 'expo-router';
+
 
 export default function Dashboard() {
   return (

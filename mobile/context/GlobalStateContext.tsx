@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-// import { authService } from '@/services/auth'; // Uncomment when auth service is ready
+import { authService } from '../services/auth'; // UNCOMMENTED THIS
 
 type ThemeType = 'light' | 'dark' | 'system';
 
@@ -39,11 +39,11 @@ interface GlobalContextType {
   updateMedicalInfo: (info: Partial<MedicalInfo>) => void;
   saveReport: (reportData: Omit<Report, 'id' | 'date'>) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, fullName: string) => Promise<void>; // Added Register
   logout: () => void;
   hapticFeedback: (style?: Haptics.ImpactFeedbackStyle) => void;
 }
 
-// Export Context for the Provider
 export const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
 
 export const GlobalProvider = ({ children }: { children: ReactNode }) => {
@@ -94,16 +94,40 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
     if (Platform.OS !== 'web') Haptics.impactAsync(style);
   };
 
+  // REAL LOGIN IMPLEMENTATION
   const login = async (email: string, password: string) => {
-    // const data = await authService.login(email, password); // Use real service later
-    const mockToken = "mock-jwt-token";
-    setToken(mockToken);
-    setIsLoggedIn(true);
-    setUserName(email.split('@')[0]);
-    await AsyncStorage.setItem('isLoggedIn', 'true');
-    await AsyncStorage.setItem('userToken', mockToken);
-    await AsyncStorage.setItem('userName', email.split('@')[0]);
-    hapticFeedback(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const data = await authService.login(email, password);
+      
+      const accessToken = data.access_token;
+      // If backend returns user info, use it. Otherwise derive from email
+      const name = email.split('@')[0]; 
+
+      setToken(accessToken);
+      setIsLoggedIn(true);
+      setUserName(name);
+
+      await AsyncStorage.setItem('isLoggedIn', 'true');
+      await AsyncStorage.setItem('userToken', accessToken);
+      await AsyncStorage.setItem('userName', name);
+      
+      hapticFeedback(Haptics.ImpactFeedbackStyle.Medium);
+    } catch (error) {
+      console.error("Login failed:", error);
+      throw error; // Propagate error to UI
+    }
+  };
+
+  // REAL REGISTER IMPLEMENTATION
+  const register = async (email: string, password: string, fullName: string) => {
+    try {
+      await authService.register(email, password, fullName);
+      // Auto-login after successful registration
+      await login(email, password);
+    } catch (error) {
+      console.error("Registration failed:", error);
+      throw error;
+    }
   };
 
   const logout = async () => {
@@ -151,7 +175,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
     <GlobalContext.Provider value={{
       theme, isHighContrast, isLoggedIn, userName, token, isLoading,
       medicalInfo, reports,
-      setTheme, setHighContrast, login, logout, updateProfile,
+      setTheme, setHighContrast, login, register, logout, updateProfile,
       updateMedicalInfo, saveReport, hapticFeedback
     }}>
       {children}
@@ -159,7 +183,6 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// Hook to access the state
 export const useGlobalState = () => {
   const context = useContext(GlobalContext);
   if (!context) throw new Error("useGlobalState must be used within GlobalProvider");

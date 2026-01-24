@@ -19,36 +19,35 @@ const customColors = {
 };
 
 // 3. Export the Final Themes
+// FIX: Do NOT spread ...LightTheme here. It overwrites MD3 fonts with incompatible Nav fonts.
 export const AppLightTheme = {
   ...MD3LightTheme,
-  ...LightTheme,
   colors: {
     ...MD3LightTheme.colors,
-    ...LightTheme.colors,
+    ...LightTheme.colors, // Merge the adapted colors (which include card, border, etc.)
     ...customColors,
   },
 };
 
 export const AppDarkTheme = {
   ...MD3DarkTheme,
-  ...DarkTheme,
   colors: {
     ...MD3DarkTheme.colors,
     ...DarkTheme.colors,
     ...customColors,
-    primary: '#9ECAFF', // Lighter blue for dark mode
+    primary: '#9ECAFF',
     onPrimary: '#003258',
   },
 };
 
-// High Contrast can just be a modification of Dark Theme for now
+// High Contrast Theme
 export const AppHighContrastTheme = {
   ...AppDarkTheme,
   colors: {
     ...AppDarkTheme.colors,
     background: '#000000',
     surface: '#121212',
-    primary: '#FFFF00', // High visibility yellow
+    primary: '#FFFF00',
     onPrimary: '#000000',
     text: '#FFFFFF',
   }
