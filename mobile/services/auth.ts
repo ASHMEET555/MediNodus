@@ -2,7 +2,7 @@
 import { Platform } from 'react-native';
 
 // CHANGE THIS to your backend URL
-const API_URL = 'http://10.23.1.82:8000' //ip of pc
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
 
 export const authService = {
   async register(email: string, password: string, fullName: string) {
