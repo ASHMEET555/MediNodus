@@ -1,63 +1,120 @@
+import React, { useState, useEffect } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Surface, Text, Card, Button, Avatar, IconButton, useTheme } from 'react-native-paper';
+import { Surface, Text, Card, Button, Avatar, IconButton, useTheme, List } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { ThemedView } from '../../components/themed-view';
+import { useGlobalState } from '../../context/GlobalStateContext';
+
+const HEALTH_QUOTES = [
+  "The greatest wealth is health.",
+  "Let food be thy medicine and medicine be thy food.",
+  "Early to bed and early to rise makes a man healthy, wealthy and wise.",
+  "Physical fitness is the first requisite of happiness.",
+  "A healthy outside starts from the inside.",
+  "Take care of your body. It's the only place you have to live.",
+  "To keep the body in good health is a duty... otherwise we shall not be able to keep our mind strong and clear.",
+  "Hydration is key to a healthy mind and body."
+];
 
 export default function Dashboard() {
   const router = useRouter();
   const theme = useTheme();
+  const { user, reports } = useGlobalState();
+  const [quote, setQuote] = useState("");
+
+  useEffect(() => {
+    // Pick a random quote every time the component mounts
+    const random = HEALTH_QUOTES[Math.floor(Math.random() * HEALTH_QUOTES.length)];
+    setQuote(random);
+  }, []);
+
+  const latestReport = reports.length > 0 ? reports[0] : null;
 
   return (
-    // safeArea={true} ensures content starts below the notch
     <ThemedView style={styles.container} safeArea={true}>
       
-      {/* Header Section */}
-      <View style={styles.headerRow}>
-        <View>
-          <Text variant="titleSmall" style={{ color: theme.colors.outline }}>Welcome back,</Text>
-          <Text variant="headlineMedium" style={{ fontWeight: 'bold' }}>MediNodus</Text>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={{ flex: 1 }}>
+          <Text variant="titleMedium" style={{ color: theme.colors.secondary }}>
+            Hello, {user?.name || 'Guest'}
+          </Text>
+          <Text variant="headlineMedium" style={{ fontWeight: 'bold', color: theme.colors.primary }}>
+            MediNodus
+          </Text>
         </View>
         <IconButton 
-          icon="account-circle" 
-          size={32} 
+          mode="contained" 
+          containerColor={theme.colors.secondaryContainer} 
+          iconColor={theme.colors.onSecondaryContainer}
+          icon="account" 
+          size={28} 
           onPress={() => router.push('/profile')} 
         />
       </View>
 
-      {/* FIX: style={{ flex: 1 }} ensures the ScrollView fills the container */}
-      <ScrollView 
-        style={{ flex: 1 }}
-        contentContainerStyle={styles.scrollContent} 
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
-        {/* Main Action Card */}
-        <Card style={styles.card} mode="elevated" onPress={() => router.push('/scan')}>
-          <Card.Cover source={{ uri: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80' }} />
-          <Card.Title 
-            title="Scan New Report" 
-            subtitle="Analyze lab results or prescriptions"
-            left={(props) => <Avatar.Icon {...props} icon="camera" />}
-            right={(props) => <IconButton {...props} icon="arrow-right" />}
-          />
+        {/* 1. Daily Quote Card (Replaced the Image Card) */}
+        <Card style={[styles.quoteCard, { backgroundColor: theme.colors.tertiaryContainer }]}>
+          <Card.Content>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <Avatar.Icon size={32} icon="format-quote-open" style={{ backgroundColor: 'transparent' }} color={theme.colors.onTertiaryContainer} />
+              <Text variant="titleSmall" style={{ color: theme.colors.onTertiaryContainer, fontWeight: 'bold' }}>
+                Daily Wisdom
+              </Text>
+            </View>
+            <Text variant="headlineSmall" style={{ color: theme.colors.onTertiaryContainer, fontStyle: 'italic', lineHeight: 32 }}>
+              "{quote}"
+            </Text>
+          </Card.Content>
         </Card>
 
-        {/* Quick Actions Grid */}
-        <Text variant="titleMedium" style={styles.sectionTitle}>Quick Actions</Text>
+        {/* 2. Actions Grid (Renamed & Resized) */}
+        <Text variant="titleMedium" style={styles.sectionTitle}>Actions</Text>
         <View style={styles.grid}>
-          {/* Action: 'upload' triggers the document picker in Scan screen */}
-          <Button 
-            mode="contained-tonal" 
-            icon="file-upload" 
-            style={styles.gridBtn} 
-            onPress={() => router.push({ pathname: '/scan', params: { action: 'upload' } })}
-          >
-            Upload PDF
-          </Button>
-          <Button mode="contained-tonal" icon="history" style={styles.gridBtn} onPress={() => router.push('/(tabs)/reports')}>
-            History
-          </Button>
+          
+          {/* Upload Button */}
+          <Card mode="outlined" style={styles.gridCard} onPress={() => router.push({ pathname: '/scan', params: { action: 'upload' } })}>
+            <Card.Content style={styles.centerContent}>
+              <Avatar.Icon size={64} icon="file-upload" style={{ backgroundColor: theme.colors.secondaryContainer }} color={theme.colors.onSecondaryContainer} />
+              <Text variant="titleMedium" style={styles.gridLabel}>Upload File</Text>
+              <Text variant="bodySmall" style={{color: 'gray'}}>PDF or Image</Text>
+            </Card.Content>
+          </Card>
+          
+          {/* Scan Button (Moved here from Hero) */}
+          <Card mode="outlined" style={styles.gridCard} onPress={() => router.push('/scan')}>
+             <Card.Content style={styles.centerContent}>
+              <Avatar.Icon size={64} icon="camera" style={{ backgroundColor: theme.colors.primaryContainer }} color={theme.colors.onPrimaryContainer} />
+              <Text variant="titleMedium" style={styles.gridLabel}>Scan Report</Text>
+              <Text variant="bodySmall" style={{color: 'gray'}}>Use Camera</Text>
+            </Card.Content>
+          </Card>
+
         </View>
+
+        {/* 3. Recent Activity */}
+        <View style={styles.recentHeader}>
+          <Text variant="titleMedium" style={styles.sectionTitle}>Recent</Text>
+          <Button compact onPress={() => router.push('/(tabs)/reports')}>History Tab</Button>
+        </View>
+        
+        <Surface style={styles.recentList} elevation={1}>
+          {latestReport ? (
+            <List.Item
+              title={latestReport.title || "Untitled Analysis"}
+              description={latestReport.date}
+              left={props => <List.Icon {...props} icon="file-document-outline" />}
+              right={props => <List.Icon {...props} icon="chevron-right" />}
+              onPress={() => router.push('/(tabs)/reports')}
+            />
+          ) : (
+            <View style={styles.emptyState}>
+              <Text variant="bodyMedium" style={{ color: theme.colors.outline }}>No recent scans found.</Text>
+            </View>
+          )}
+        </Surface>
 
       </ScrollView>
     </ThemedView>
@@ -66,17 +123,27 @@ export default function Dashboard() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  headerRow: { 
+  header: { 
     flexDirection: 'row', 
     justifyContent: 'space-between', 
     alignItems: 'center', 
     paddingHorizontal: 24, 
-    marginBottom: 10,
-    marginTop: 10 
+    paddingTop: 10,
+    marginBottom: 20
   },
-  scrollContent: { paddingHorizontal: 24, paddingBottom: 20 },
-  card: { marginBottom: 20, overflow: 'hidden' },
-  sectionTitle: { marginBottom: 10, fontWeight: '600' },
-  grid: { flexDirection: 'row', gap: 10 },
-  gridBtn: { flex: 1 }
+  scrollContent: { paddingHorizontal: 24, paddingBottom: 40 },
+  
+  quoteCard: { marginBottom: 25, borderRadius: 24 },
+  
+  sectionTitle: { fontWeight: 'bold', marginBottom: 12 },
+  
+  grid: { flexDirection: 'row', gap: 12, marginBottom: 25 },
+  // FIX: Increased height for bigger buttons
+  gridCard: { flex: 1, borderRadius: 20, minHeight: 160, justifyContent: 'center' },
+  centerContent: { alignItems: 'center', paddingVertical: 20 },
+  gridLabel: { marginTop: 12, fontWeight: 'bold' },
+
+  recentHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  recentList: { borderRadius: 16, overflow: 'hidden', backgroundColor: 'transparent' }, 
+  emptyState: { padding: 20, alignItems: 'center' }
 });
