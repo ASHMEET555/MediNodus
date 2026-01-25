@@ -83,7 +83,7 @@ Create a `.env` file in the `backend/` directory:
 MONGO_URL=mongodb+srv://<user>:<password>@cluster.mongodb.net/?retryWrites=true&w=majority
 CLOUDINARY_KEY=<your_cloudinary_secret>
 SECRET_KEY=<your_jwt_secret>
-HUGGING_FACE_API=<hf_auth_token>
+HF_TOKEN=<hf_auth_token>
 # No External AI Keys Required!
 
 ```
