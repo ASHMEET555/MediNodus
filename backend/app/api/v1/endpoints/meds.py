@@ -167,7 +167,7 @@ async def upload_medical_image(
     
     # FIX: Parse the string into a dict
     cleaned_effects_response = parse_json_output(effects_response_str)
-
+    final_response = {**parsed_medicine_details, **cleaned_effects_response}
     # 4️⃣ Save Record
     # Now using 'image.filename' works because we didn't overwrite 'image'
     image_ref = await save_image(image_bytes, image.filename, str(current_user.id))
@@ -177,7 +177,7 @@ async def upload_medical_image(
 
     return {
         "status": "success",
-        "message": cleaned_effects_response
+        "message": final_response
     }
 
 
