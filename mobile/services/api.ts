@@ -77,5 +77,33 @@ export const apiService = {
       throw new Error(error.message || 'Failed to upload PDF');
     }
     return response.json();
+  },
+
+  // --- NEW: Medical History Endpoints ---
+
+  async getMedicalHistory(token: string) {
+    const response = await fetch(`${API_URL}/med/infoget`, {
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!response.ok) throw new Error('Failed to fetch medical history');
+    return response.json();
+  },
+
+  async updateMedicalHistory(token: string, data: { allergy: string, chronic_condition: string, current_medication: string }) {
+    const response = await fetch(`${API_URL}/med/infoupdate`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) throw new Error('Failed to update medical history');
+    return response.json();
   }
 };
+
+

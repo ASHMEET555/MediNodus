@@ -3,10 +3,10 @@ import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { authService } from '../services/auth';
+import { apiService } from '../services/api'; // Import API Service
 
 type ThemeType = 'light' | 'dark' | 'system';
 
-// 1. Define a proper User interface
 export interface User {
   name: string;
   email: string;
@@ -32,7 +32,7 @@ interface GlobalContextType {
   theme: ThemeType;
   isHighContrast: boolean;
   isLoggedIn: boolean;
-  user: User | null; // 2. Changed from userName to user object
+  user: User | null;
   token: string | null;
   isLoading: boolean;
   medicalInfo: MedicalInfo;
@@ -56,16 +56,14 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
   const [theme, setThemeState] = useState<ThemeType>('system');
   const [isHighContrast, setHighContrastState] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  
-  // 3. State now holds the User object
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  
   const [reports, setReports] = useState<Report[]>([]);
   const [medicalInfo, setMedicalInfoState] = useState<MedicalInfo>({
     conditions: '', allergies: '', medications: ''
   });
 
+  // 1. Load Local State
   useEffect(() => {
     const loadState = async () => {
       try {
@@ -74,7 +72,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
           AsyncStorage.getItem('userToken'),
           AsyncStorage.getItem('theme'),
           AsyncStorage.getItem('highContrast'),
-          AsyncStorage.getItem('user'), // Load full user object
+          AsyncStorage.getItem('user'),
           AsyncStorage.getItem('medicalInfo'),
           AsyncStorage.getItem('reports')
         ]);
@@ -98,74 +96,81 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
     loadState();
   }, []);
 
+  // 2. Fetch Remote Medical Data when Token changes (Login/Load)
+  useEffect(() => {
+    const fetchRemoteData = async () => {
+      if (token && isLoggedIn) {
+        try {
+          const data = await apiService.getMedicalHistory(token);
+          // Map Backend -> Frontend
+          const mappedInfo = {
+            conditions: data.chronic_condition || '',
+            allergies: data.allergy || '',
+            medications: data.current_medication || ''
+          };
+          setMedicalInfoState(mappedInfo);
+          AsyncStorage.setItem('medicalInfo', JSON.stringify(mappedInfo));
+        } catch (e) {
+          console.log("Could not fetch remote medical history (might be empty).");
+        }
+      }
+    };
+    fetchRemoteData();
+  }, [token, isLoggedIn]);
+
   const hapticFeedback = (style = Haptics.ImpactFeedbackStyle.Light) => {
     if (Platform.OS !== 'web') Haptics.impactAsync(style);
   };
 
   const login = async (email: string, password: string) => {
-    try {
-      const data = await authService.login(email, password);
-      const accessToken = data.access_token;
-      
-      // Construct user object
-      const newUser: User = {
-        name: email.split('@')[0], // Fallback name
-        email: email
-      };
+    const data = await authService.login(email, password);
+    const accessToken = data.access_token;
+    
+    const newUser: User = {
+      name: email.split('@')[0],
+      email: email
+    };
 
-      setToken(accessToken);
-      setIsLoggedIn(true);
-      setUser(newUser);
+    setToken(accessToken);
+    setIsLoggedIn(true);
+    setUser(newUser);
 
-      await AsyncStorage.setItem('isLoggedIn', 'true');
-      await AsyncStorage.setItem('userToken', accessToken);
-      await AsyncStorage.setItem('user', JSON.stringify(newUser));
-      
-      hapticFeedback(Haptics.ImpactFeedbackStyle.Medium);
-    } catch (error) {
-      console.error("Login failed:", error);
-      throw error;
-    }
+    await AsyncStorage.setItem('isLoggedIn', 'true');
+    await AsyncStorage.setItem('userToken', accessToken);
+    await AsyncStorage.setItem('user', JSON.stringify(newUser));
+    
+    hapticFeedback(Haptics.ImpactFeedbackStyle.Medium);
   };
 
   const register = async (email: string, password: string, fullName: string) => {
-    try {
-      await authService.register(email, password, fullName);
-      // Auto-login logic
-      const data = await authService.login(email, password);
-      const accessToken = data.access_token;
+    await authService.register(email, password, fullName);
+    const data = await authService.login(email, password);
+    const accessToken = data.access_token;
 
-      const newUser: User = { name: fullName, email };
-      
-      setToken(accessToken);
-      setIsLoggedIn(true);
-      setUser(newUser);
+    const newUser: User = { name: fullName, email };
+    
+    setToken(accessToken);
+    setIsLoggedIn(true);
+    setUser(newUser);
 
-      await AsyncStorage.setItem('isLoggedIn', 'true');
-      await AsyncStorage.setItem('userToken', accessToken);
-      await AsyncStorage.setItem('user', JSON.stringify(newUser));
+    await AsyncStorage.setItem('isLoggedIn', 'true');
+    await AsyncStorage.setItem('userToken', accessToken);
+    await AsyncStorage.setItem('user', JSON.stringify(newUser));
 
-      hapticFeedback(Haptics.ImpactFeedbackStyle.Medium);
-    } catch (error) {
-      console.error("Registration failed:", error);
-      throw error;
-    }
+    hapticFeedback(Haptics.ImpactFeedbackStyle.Medium);
   };
 
- const logout = async () => {
+  const logout = async () => {
     if (token) {
       try {
-        // 1. Call Backend to invalidate session
         await authService.logout(token);
-      } catch (e) {
-        console.log("Error logging out from backend:", e);
-      }
+      } catch (e) { console.log(e); }
     }
-    
-    // 2. Clear Local State (Triggers Router Redirect)
     setToken(null);
     setUser(null);
     setIsLoggedIn(false);
+    // Clear sensitive info on logout
+    setMedicalInfoState({ conditions: '', allergies: '', medications: '' });
   };
 
   const setTheme = (t: ThemeType) => {
@@ -186,10 +191,28 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const updateMedicalInfo = (info: Partial<MedicalInfo>) => {
+  // 3. Update Medical Info (Syncs to Backend)
+  const updateMedicalInfo = async (info: Partial<MedicalInfo>) => {
     const updated = { ...medicalInfo, ...info };
     setMedicalInfoState(updated);
-    AsyncStorage.setItem('medicalInfo', JSON.stringify(updated));
+    
+    // Save locally
+    await AsyncStorage.setItem('medicalInfo', JSON.stringify(updated));
+
+    // Sync to Backend
+    if (token) {
+      try {
+        // Map Frontend -> Backend
+        await apiService.updateMedicalHistory(token, {
+          chronic_condition: updated.conditions,
+          allergy: updated.allergies,
+          current_medication: updated.medications
+        });
+        console.log("Medical history synced to backend");
+      } catch (error) {
+        console.error("Failed to sync medical history:", error);
+      }
+    }
   };
 
   const saveReport = async (reportData: Omit<Report, 'id' | 'date'>) => {

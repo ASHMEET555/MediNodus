@@ -9,12 +9,11 @@ export default function ProfileScreen() {
   const { user, logout } = useGlobalState();
   const theme = useTheme();
   const router = useRouter();
-  const [isLoggingOut, setIsLoggingOut] = useState(false); // Local loading state
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    await logout(); // Wait for backend call
-    // No need to manually route; GlobalState change triggers _layout redirect
+    await logout();
     setIsLoggingOut(false);
   };
 
@@ -25,60 +24,86 @@ export default function ProfileScreen() {
         <Appbar.Content title="My Profile" />
       </Appbar.Header>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        
-        {/* Profile Header */}
-        <View style={styles.header}>
-          <Avatar.Text 
-            size={80} 
-            label={user?.name?.[0]?.toUpperCase() || 'G'} 
-            style={{ backgroundColor: theme.colors.primaryContainer }} 
-            color={theme.colors.onPrimaryContainer} 
-            labelStyle={{ fontWeight: 'bold' }}
-          />
-          <Text variant="headlineSmall" style={styles.name}>{user?.name || 'Guest User'}</Text>
-          <Text variant="bodyMedium" style={{ color: theme.colors.secondary }}>{user?.email || 'guest@medinodus.com'}</Text>
-          
-          <Button 
-            mode="outlined" 
-            style={styles.editBtn} 
-            onPress={() => router.push('/profile/edit')}
-          >
-            Edit Profile
-          </Button>
-        </View>
-
-        <Divider style={styles.divider} />
-
-        {/* ... List Sections ... */}
-        <List.Section>
-          <List.Subheader style={styles.subheader}>Personal Data</List.Subheader>
-          <List.Item
-            title="Medical ID"
-            description="Allergies & Conditions"
-            left={() => <List.Icon icon="medical-bag" />}
-            right={() => <List.Icon icon="chevron-right" />}
-            onPress={() => router.push('/profile/medical')}
-            style={styles.listItem}
-          />
-          {/* ... other items ... */}
-        </List.Section>
-
-        <View style={styles.logoutContainer}>
+      <View style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.content}>
+          <View style={styles.header}>
+            <Avatar.Text 
+              size={80} 
+              label={user?.name?.[0]?.toUpperCase() || 'G'} 
+              style={{ backgroundColor: theme.colors.primaryContainer }} 
+              color={theme.colors.onPrimaryContainer} 
+              labelStyle={{ fontWeight: 'bold' }}
+            />
+            <Text variant="headlineSmall" style={styles.name}>
+              {user?.name || 'Guest User'}
+            </Text>
+            <Text variant="bodyMedium" style={{ color: theme.colors.secondary }}>
+              {user?.email || 'guest@medinodus.com'}
+            </Text>
+            
             <Button 
-              mode="contained" 
-              buttonColor={theme.colors.error} 
-              icon="logout" 
-              onPress={handleLogout}
-              loading={isLoggingOut} // Show spinner
-              disabled={isLoggingOut} // Prevent double click
-              contentStyle={{ paddingVertical: 8 }}
+              mode="outlined" 
+              style={styles.editBtn} 
+              onPress={() => router.push('/profile/edit')}
             >
-                Sign Out
+              Edit Profile
             </Button>
-        </View>
+          </View>
 
-      </ScrollView>
+          <Divider style={styles.divider} />
+
+          <List.Section>
+            <List.Subheader style={styles.subheader}>Personal Data</List.Subheader>
+            <List.Item
+              title="Medical ID"
+              description="Allergies & Conditions"
+              left={() => <List.Icon icon="medical-bag" />}
+              right={() => <List.Icon icon="chevron-right" />}
+              onPress={() => router.push('/profile/medical')}
+              style={styles.listItem}
+            />
+            <List.Item
+              title="Export Data"
+              left={() => <List.Icon icon="database-export" />}
+              right={() => <List.Icon icon="chevron-right" />}
+              onPress={() => router.push('/profile/data')}
+              style={styles.listItem}
+            />
+          </List.Section>
+
+          <List.Section>
+            <List.Subheader style={styles.subheader}>Preferences</List.Subheader>
+            <List.Item
+              title="Appearance"
+              left={() => <List.Icon icon="palette" />}
+              right={() => <List.Icon icon="chevron-right" />}
+              onPress={() => router.push('/profile/appearance')}
+              style={styles.listItem}
+            />
+            <List.Item
+              title="Privacy Policy"
+              left={() => <List.Icon icon="shield-check" />}
+              right={() => <List.Icon icon="chevron-right" />}
+              onPress={() => router.push('/profile/privacypolicy')}
+              style={styles.listItem}
+            />
+          </List.Section>
+
+          <View style={styles.logoutContainer}>
+              <Button 
+                mode="contained" 
+                buttonColor={theme.colors.error} 
+                icon="logout" 
+                onPress={handleLogout}
+                loading={isLoggingOut}
+                disabled={isLoggingOut}
+                contentStyle={{ paddingVertical: 8 }}
+              >
+                  Sign Out
+              </Button>
+          </View>
+        </ScrollView>
+      </View>
     </ThemedView>
   );
 }

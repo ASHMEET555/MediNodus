@@ -32,7 +32,10 @@ export default function ScanScreen() {
     setShowTypeDialog(true);
   };
 
-  const processUpload = async () => {
+
+
+  
+const processUpload = async () => {
     if (!tempFile) return;
 
     // VALIDATION 1: Medicine cannot be PDF
@@ -60,7 +63,15 @@ export default function ScanScreen() {
       }
       
       Alert.alert("Success", "Analysis complete!");
-      router.push({ pathname: '/reports/analysis', params: { ...response } });
+
+      // FIX: Stringify the data so it passes correctly to the Analysis screen
+      router.push({ 
+        pathname: '/reports/analysis', 
+        params: { 
+          data: JSON.stringify(response.message) 
+        } 
+      });
+
     } catch (error: any) {
       Alert.alert("Upload Failed", error.message);
     } finally {
